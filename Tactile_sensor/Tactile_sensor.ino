@@ -31,12 +31,12 @@ void loop() {
 //  Serial.println(" V");
 
   float rapport = valeurBrute/valeurBrute2;
-  float produit = valeurBrute * valeurBrute2;
+  float somme = valeurBrute + valeurBrute2;
   Serial.print("Rapport des deux données brutes :");
   Serial.print(rapport);
   Serial.print("\t");
-  Serial.print("Produit des deux valeurs brutes :");
-  Serial.println(produit);
+  Serial.print("Somme des deux valeurs brutes :");
+  Serial.println(somme);
 
   delay(200);
 }
