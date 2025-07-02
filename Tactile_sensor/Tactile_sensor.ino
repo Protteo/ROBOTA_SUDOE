@@ -10,8 +10,8 @@ void setup() {
 }
 
 void loop() {
-  int valeurBrute = analogRead(capteurPin);
-  int valeurBrute2 = analogRead(capteurPin2);
+  float valeurBrute = analogRead(capteurPin);
+  float valeurBrute2 = analogRead(capteurPin2);
 
 //  float tension = (valeurBrute / (float)(resolution - 1)) * VREF;
 //  float tension2 = (valeurBrute2 / (float)(resolution - 1)) * VREF;
@@ -28,9 +28,9 @@ void loop() {
 //  Serial.print(tension2, 3);
 //  Serial.println(" V");
 
-  float rapport =valeurBrute/valeurBrute2;
+  float rapport = valeurBrute/valeurBrute2;
   Serial.print("Rapport des deux données brutes :");
-  Serial.print(rapport);
+  Serial.println(rapport);
 
   delay(200);
 }
