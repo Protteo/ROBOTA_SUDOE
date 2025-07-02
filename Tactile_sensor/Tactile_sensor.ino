@@ -1,3 +1,4 @@
+//Le code est bon
 const int capteurPin = A17; // Broche analogique utilisée
 //const int capteurPin2 = A1;
 const float VREF = 3.3;    // Tension de référence analogique (adapter à ton Teensy)
