@@ -1,4 +1,4 @@
-const int capteurPin = A0; // Broche analogique utilisée
+const int capteurPin = A17; // Broche analogique utilisée
 //const int capteurPin2 = A1;
 const float VREF = 3.3;    // Tension de référence analogique (adapter à ton Teensy)
 const int resolution = 1024; // Résolution ADC (10 bits sur Teensy 3.2 ; 12 bits possible)
