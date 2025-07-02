@@ -16,14 +16,16 @@ void loop() {
 //  float tension = (valeurBrute / (float)(resolution - 1)) * VREF;
 //  float tension2 = (valeurBrute2 / (float)(resolution - 1)) * VREF;
 
-//  Serial.print("Valeur brute : ");
-//  Serial.print(valeurBrute);
+  Serial.print("Valeur brute : ");
+  Serial.print(valeurBrute);
+  Serial.print("\t");
 //  Serial.print("\tTension : ");
 //  Serial.print(tension, 3);
 //  Serial.println(" V");
 
-//  Serial.print("Valeur brute 2 : ;
-//  Serial.print(valeurBrute2);
+  Serial.print("Valeur brute 2 : ") ;
+  Serial.print(valeurBrute2);
+  Serial.print("\t");
 //  Serial.print("\tTension : ");
 //  Serial.print(tension2, 3);
 //  Serial.println(" V");
