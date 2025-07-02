@@ -1,0 +1,9 @@
+Il y a 5 positions possibles :
+2 en mode poignard :
+- lame vers le corps
+- lame opposée au corps
+
+3 en mode traditionnel :
+- lame perpendiculaire au plan de travail
+- lame parallèle au plan de travail et orientée vers le corps
+- lame parallèle au plan de travail et opposée au corps 
