@@ -22,15 +22,19 @@ void loop() {
 //  Serial.print(tension, 3);
 //  Serial.println(" V");
 
-//  Serial.print("Valeur brute 2 : ");
+//  Serial.print("Valeur brute 2 : ;
 //  Serial.print(valeurBrute2);
 //  Serial.print("\tTension : ");
 //  Serial.print(tension2, 3);
 //  Serial.println(" V");
 
   float rapport = valeurBrute/valeurBrute2;
+  float produit = valeurBrute * valeurBrute2;
   Serial.print("Rapport des deux données brutes :");
-  Serial.println(rapport);
+  Serial.print(rapport);
+  Serial.print("\t");
+  Serial.print("Produit des deux valeurs brutes :");
+  Serial.println(produit);
 
   delay(200);
 }
