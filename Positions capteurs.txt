@@ -21,3 +21,5 @@ Nous nous sommes alors rendus compte qu'un seul capteur suffisait sur un seul co
 
 Nous avons ensuite placé un capteur sur le coté, et un sur le dessus de la poignée. Nous nous sommes rendu compte que le rapport était inférieur à 1 en position poignard, et supérieur à 1 en position standard.
 Il faut ensuite voir s'il est nécessaire de placer un capteur de chaque coté de la poignée afin d'être adapté aux droitiers et gauchers.
+
+Les ordres de grandeurs sont d'environ +- 
