@@ -15,3 +15,6 @@ rapport : valeurs brutes/valeurs brutes2
 
 Capteur 1 : arrière du couteau
 Capteur 2 : avant du couteau
+
+Nous avons essayé par la suite de placer ces capteur sur les cotés du manche.
+Nous nous sommes alors rendus compte qu'un seul capteur suffisait sur un seul coté. Cependant, pour permettre aux droitiers et aux gauchers de l'utiliser, il serait nécessaire de placer deux capteurs, un deux chaque coté de la poignée, juste au milieu.
