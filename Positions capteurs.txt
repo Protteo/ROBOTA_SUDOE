@@ -1,9 +1,11 @@
 Il y a 5 positions possibles :
 2 en mode poignard :
-- lame vers le corps
-- lame opposée au corps
+- lame vers le corps (position A)
+- lame opposée au corps (position B)
 
 3 en mode traditionnel :
-- lame perpendiculaire au plan de travail
-- lame parallèle au plan de travail et orientée vers le corps
-- lame parallèle au plan de travail et opposée au corps 
+- lame perpendiculaire au plan de travail (position C)
+- lame parallèle au plan de travail et orientée vers le corps (position D)
+- lame parallèle au plan de travail et opposée au corps (position E)
+
+Voici différents rapports selon 6 positions de capteurs en fonction de comment on tient le manche :
