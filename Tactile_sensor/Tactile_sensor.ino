@@ -21,11 +21,11 @@ void loop() {
   Serial.print(tension, 3);
   Serial.println(" V");
 
-  Serial.print("Valeur brute 2 : ");
-  Serial.print(valeurBrute2);
-  Serial.print("\tTension : ");
-  Serial.print(tension2, 3);
-  Serial.println(" V");
+//  Serial.print("Valeur brute 2 : ");
+//  Serial.print(valeurBrute2);
+//  Serial.print("\tTension : ");
+//  Serial.print(tension2, 3);
+//  Serial.println(" V");
 
   delay(200);
 }
