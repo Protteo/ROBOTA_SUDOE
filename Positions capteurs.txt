@@ -9,3 +9,9 @@ Il y a 5 positions possibles :
 - lame parallèle au plan de travail et opposée au corps (position E)
 
 Voici différents rapports selon 6 positions de capteurs en fonction de comment on tient le manche :
+Position traditionnelle : le rapport vaut 0.64
+Position poignard : le rapport est beaucoup plus proche de 1 : 0.98
+rapport : valeurs brutes/valeurs brutes2
+
+Capteur 1 : arrière du couteau
+Capteur 2 : avant du couteau
