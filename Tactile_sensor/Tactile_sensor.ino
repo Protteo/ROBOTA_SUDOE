@@ -2,6 +2,8 @@
 const int capteurPin = A17; // Broche analogique utilisée
 const int capteurPin2 = A16;
 const int capteurPin3 = A10;
+const int capteurPin4 = A11;
+
 
 const float VREF = 3.3;    // Tension de référence analogique (adapter à ton Teensy)
 const int resolution = 1024; // Résolution ADC (10 bits sur Teensy 3.2 ; 12 bits possible)
@@ -15,6 +17,7 @@ void loop() {
   float valeurBrute = analogRead(capteurPin);
   float valeurBrute2 = analogRead(capteurPin2);
   float valeurBrute3 = analogRead(capteurPin3);
+  float valeurBrute4 = analogRead(capteurPin4);
 
 
 //  float tension = (valeurBrute / (float)(resolution - 1)) * VREF;
@@ -37,6 +40,13 @@ void loop() {
   Serial.print("Valeur brute 3 : ") ;
   Serial.print(valeurBrute3);
   Serial.print("\t");
+
+  Serial.print("Valeur brute 4 : ");
+  Serial.print(valeurBrute4);
+  Serial.print("\t");
+//  Serial.print("\tTension : ");
+//  Serial.print(tension, 3);
+//  Serial.println(" V");
 
   float rapport = valeurBrute/valeurBrute2;
 //  float somme = valeurBrute + valeurBrute2;
