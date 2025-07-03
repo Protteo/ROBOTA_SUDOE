@@ -22,4 +22,5 @@ Nous nous sommes alors rendus compte qu'un seul capteur suffisait sur un seul co
 Nous avons ensuite placé un capteur sur le coté, et un sur le dessus de la poignée. Nous nous sommes rendu compte que le rapport était inférieur à 1 en position poignard, et supérieur à 1 en position standard.
 Il faut ensuite voir s'il est nécessaire de placer un capteur de chaque coté de la poignée afin d'être adapté aux droitiers et gauchers.
 
-Les ordres de grandeurs sont d'environ +- 
+Cependant, tous nos résultats précédents ne sont pas répétables. Lors de nos différents essais, nous n'avons pas réussis à deviner à chaque fois si nous tenions le couteau en position poignard ou en position standard.
+Nous allons alors utiliser une autre méthode. Afin de voir précisément où s'applique la force principale, que ce soit en position standard ou poignard, nous allons utiliser les data gloves. Cela va permettre de voir à l'écran où s'applique les forces, comment elles sont réparties etc...
