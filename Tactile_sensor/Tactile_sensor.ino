@@ -19,49 +19,84 @@ void loop() {
   float valeurBrute3 = analogRead(capteurPin3);
   float valeurBrute4 = analogRead(capteurPin4);
 
+  float capteur1 = (10.0/3)*valeurBrute-3300;
+  float capteur2 = (10.0/3)*valeurBrute2-3300;
+  float capteur3 = (10.0/3)*valeurBrute3-3300;
+  float capteur4 = (10.0/3)*valeurBrute4-3300;
+  
 
 //  float tension = (valeurBrute / (float)(resolution - 1)) * VREF;
 //  float tension2 = (valeurBrute2 / (float)(resolution - 1)) * VREF;
+//  Serial.print("Val brute 1 : ");
+//  Serial.print(valeurBrute);
+//  Serial.print("\t");
 
-  Serial.print("Valeur brute : ");
-  Serial.print(valeurBrute);
+//  Serial.print("Val brute 2 : ");
+//  Serial.print(valeurBrute2);
+//  Serial.print("\t");
+  
+//  Serial.print("Val brute 3 : ");
+//  Serial.print(valeurBrute3);
+//  Serial.print("\t");
+
+//  Serial.print("Val brute 4 : ");
+//  Serial.print(valeurBrute4);
+//  Serial.print("\t");
+
+
+  Serial.print("Cpt1 : ");
+  Serial.print(capteur1);
   Serial.print("\t");
 //  Serial.print("\tTension : ");
 //  Serial.print(tension, 3);
 //  Serial.println(" V");
 
-  Serial.print("Valeur brute 2 : ") ;
-  Serial.print(valeurBrute2);
+  Serial.print("Cpt2 : ") ;
+  Serial.print(capteur2);
   Serial.print("\t");
 //  Serial.print("\tTension : ");
 //  Serial.print(tension2, 3);
 //  Serial.println(" V");
 
-  Serial.print("Valeur brute 3 : ") ;
-  Serial.print(valeurBrute3);
+  Serial.print("Cpt3 : ") ;
+  Serial.print(capteur3);
   Serial.print("\t");
 
-  Serial.print("Valeur brute 4 : ");
-  Serial.print(valeurBrute4);
-  Serial.print("\t");
+  Serial.print("Cpt4 : ");
+  Serial.println(capteur4);
+
+//  Serial.print("\t");
 //  Serial.print("\tTension : ");
 //  Serial.print(tension, 3);
 //  Serial.println(" V");
 
-  float rapport = valeurBrute/valeurBrute2;
-//  float somme = valeurBrute + valeurBrute2;
-  Serial.print("Rapport :");
-  Serial.print(rapport);
+//  float avant = (valeurBrute+valeurBrute2)/2;
+//  float arriere = (valeurBrute4+valeurBrute3)/2;
+
+  float somme_standard = capteur1 + capteur2;
+  float somme_poignard = capteur2 + capteur3;
+//  Serial.print("Avant :");
+//  Serial.print(avant);
+//  Serial.print("\t");
+  
+//  Serial.print("Arrière :");
+//  Serial.print(arriere);
+//  Serial.print("\t");
+  Serial.print("Somme standard :");
+  Serial.print(somme_standard);
   Serial.print("\t");
-//  Serial.print("Somme des deux valeurs brutes :");
-//  Serial.println(somme);
+  Serial.print("Somme poignard :");
+  Serial.println(somme_poignard);
+
+
+  
   delay(200);
-  if (1010 >  valeurBrute2)
+  if (somme_standard < somme_poignard)
   {
-    Serial.println("Tu le tiens en poignard");
+    Serial.println("Tu le tiens en standard");
   }
   else
   {
-    Serial.println("Tu le tiens en standard");
+    Serial.println("Tu le tiens en poignard");
   }
   }
