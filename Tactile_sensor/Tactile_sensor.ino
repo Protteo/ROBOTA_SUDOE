@@ -23,6 +23,8 @@ void loop() {
   float capteur2 = (10.0/3)*valeurBrute2-3300;
   float capteur3 = (10.0/3)*valeurBrute3-3300;
   float capteur4 = (10.0/3)*valeurBrute4-3300;
+  float droite = capteur2 + capteur4;
+  float gauche = capteur1 + capteur3;
   
 
 //  float tension = (valeurBrute / (float)(resolution - 1)) * VREF;
@@ -87,16 +89,20 @@ void loop() {
   Serial.print("\t");
   Serial.print("Somme poignard :");
   Serial.println(somme_poignard);
+  Serial.print("droite : ");
+  Serial.println(droite);
+  Serial.print("gauche : ");
+  Serial.println(gauche);
 
 
   
   delay(200);
-  if (somme_standard < somme_poignard)
+  if (somme_standard > somme_poignard or abs(somme_standard-somme_poignard)<300)
   {
-    Serial.println("Tu le tiens en standard");
+    Serial.println("Tu le tiens en poignard");
   }
   else
   {
-    Serial.println("Tu le tiens en poignard");
+    Serial.println("Tu le tiens en standard");
   }
   }
