@@ -25,6 +25,10 @@ void loop() {
   float capteur4 = (10.0/3)*valeurBrute4-3300;
   float droite = capteur2 + capteur4;
   float gauche = capteur1 + capteur3;
+  float haut = capteur1 +capteur2;
+  float bas= capteur3+ capteur4;
+  float Tot= haut + bas ;
+  
   
 
 //  float tension = (valeurBrute / (float)(resolution - 1)) * VREF;
@@ -93,7 +97,12 @@ void loop() {
   Serial.println(droite);
   Serial.print("gauche : ");
   Serial.println(gauche);
-
+  Serial.print("haut : ");
+  Serial.println(haut);
+  Serial.print("bas : ");
+  Serial.println(bas);
+  Serial.print("Tot : ");
+  Serial.println(Tot);
 
   
   delay(200);
