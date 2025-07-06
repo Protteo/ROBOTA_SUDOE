@@ -30,7 +30,7 @@ ani = animation.FuncAnimation(fig, update, blit=True, interval=50)
 plt.show()
 
 #%%----------------------------Interprétation----------------------------------
-if x_str >10:
+if x >10:
     print("Tu le tiens en standard")
 else:
     print("Tu le tiens en poignard")
