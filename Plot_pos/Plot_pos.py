@@ -22,17 +22,14 @@ def update(frame):
         x=float(x_str)
         y=float(y_str)
         point.set_data(x, y)
+        #Condition pour définir la position
+        if x>0:
+            print("Tu le tiens en standard")
+        else:
+            print("Tu le tiens en poignard")
     except:
         pass
     return point,
 
 ani = animation.FuncAnimation(fig, update, blit=True, interval=50)
 plt.show()
-
-#%%----------------------------Interprétation----------------------------------
-if x >10:
-    print("Tu le tiens en standard")
-else:
-    print("Tu le tiens en poignard")
-
-
