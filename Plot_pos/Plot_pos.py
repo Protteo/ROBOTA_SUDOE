@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.widgets import Button
 import matplotlib.cm as cm
-from collections import deque
+from collections import deque, Counter
 import numpy as np
 import time
 # matplotlib.use('Qt5Agg')  # ou 'TkAgg' selon ton système
@@ -16,8 +16,8 @@ ser = serial.Serial("COM3",9600)
 #%%--------------------Preparer la figure--------------------------------------
 fig, ax = plt.subplots()
 point, =ax.plot([], [], 'ro')
-ax.set_xlim(-1,1)
-ax.set_ylim(-1,1)
+ax.set_xlim(-100,100)
+ax.set_ylim(-100,100)
 ax.set_xlabel("Latéral")
 ax.set_ylabel("Vertical")
 ax.grid(True)
@@ -44,12 +44,14 @@ ani = animation.FuncAnimation(fig, update, blit=True, interval=50)
 plt.show()
 
 #%%-----------------Histogramme------------------------------------------------
-num_capteurs = 6  # Change selon ton nombre de capteurs
+num_capteurs = 2  # Change selon ton nombre de capteurs
 labels = [f"Capteur {i+1}" for i in range(num_capteurs)]
-history_length = 500  # Longueur du buffer
+
+# history_length = 500  # Longueur du buffer
 
 # ------------------- Buffers circulaires -------------------
-histories = [deque(maxlen=history_length) for _ in range(num_capteurs)]
+
+histories = [[] for _ in range(num_capteurs)]
 
 fig, ax = plt.subplots()
 plt.subplots_adjust(bottom=0.2)  # Laisse de la place pour le bouton
@@ -77,13 +79,13 @@ def update_hist(frame):
             bar.set_height(val)
             histories[i].append(val)
             
-            if len(histories[i]) > 1:
-                min_val = min(histories[i])
-                max_val = max(histories[i])
-                text_labels[i].set_text(f"Min: {min_val:.0f}\nMax: {max_val:.0f}")
-                text_labels[i].set_y(max_val + 20)  # Décalage vertical du texte
-            else:
-                text_labels[i].set_text("")
+            # if len(histories[i]) > 1:
+            #     min_val = min(histories[i])
+            #     max_val = max(histories[i])
+            #     text_labels[i].set_text(f"Min: {min_val:.0f}\nMax: {max_val:.0f}")
+            #     text_labels[i].set_y(max_val + 20)  # Décalage vertical du texte
+            # else:
+            #     text_labels[i].set_text("")
         ax.set_ylim(0, max_global + 50)  # Ajuste la hauteur du graphe dynamiquement
 
     except Exception as e:
@@ -110,9 +112,9 @@ def reset(event):
     print("Historiques réinitialisés.")
     
 # ------------------- Ajout d'une touche 'r' pour reset
-reset_ax = plt.axes([0.4, 0.05, 0.2, 0.075])  # [x, y, width, height]
-reset_button = Button(reset_ax, 'Reset')
-reset_button.on_clicked(reset)
+# reset_ax = plt.axes([0.4, 0.05, 0.2, 0.075])  # [x, y, width, height]
+# reset_button = Button(reset_ax, 'Reset')
+# reset_button.on_clicked(reset)
 
 #%%-------------------------Ports séries actifs avec description---------------
 import serial.tools.list_ports
@@ -120,6 +122,113 @@ import serial.tools.list_ports
 ports = serial.tools.list_ports.comports()
 for p in ports:
     print(f"{p.device}: {p.description}")
+    
+#%%--------------------Acquisition avec diagramme couleurs---------------------
+import serial
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from collections import deque
+import threading
+import numpy as np
+import time
+
+# --------------------- CONFIGURATION ---------------------
+mode = "continu"  # "continu" ou "fenetre"
+interval_update_sec = 1  # fréquence mise à jour histogramme
+num_capteurs = 2
+port_serial = "COM3"
+baudrate = 9600
+
+# --------------------- INITIALISATION ---------------------
+ser = serial.Serial(port_serial, baudrate)
+labels = [f"Capteur {i+1}" for i in range(num_capteurs)]
+data_buffers = [deque() for _ in range(num_capteurs)]  # Historique complet
+data_fenetre = [deque() for _ in range(num_capteurs)]  # Fenêtre glissante (5s)
+valeurs_en_temps_reel = [0.0 for _ in range(num_capteurs)]  # Dernières valeurs brutes
+
+lock = threading.Lock()
+
+# --------------------- LECTURE SERIE ---------------------
+def lire_serial():
+    while True:
+        try:
+            line = ser.readline().decode(errors='ignore').strip()
+            valeurs = list(map(float, line.split(",")))
+            if len(valeurs) != num_capteurs:
+                continue
+            with lock:
+                now = time.time()
+                for i in range(num_capteurs):
+                    val = valeurs[i]
+                    valeurs_en_temps_reel[i] = val
+                    data_buffers[i].append(val)
+                    data_fenetre[i].append((now, val))
+        except:
+            continue
+
+thread_acq = threading.Thread(target=lire_serial, daemon=True)
+thread_acq.start()
+
+# --------------------- FENETRE 1 : HISTOGRAMMES COULEURS ---------------------
+fig_freq, axs_freq = plt.subplots(1, num_capteurs, figsize=(6 * num_capteurs, 4))
+if num_capteurs == 1:
+    axs_freq = [axs_freq]
+
+def update_histogram(frame):
+    with lock:
+        for i in range(num_capteurs):
+            ax = axs_freq[i]
+            ax.clear()
+            ax.set_title(f"Capteur {i+1} – Mode: {mode}")
+            ax.set_xlim(0, 100)
+            ax.set_ylim(0, 50)  # Ajustable selon ton usage
+            ax.set_xlabel("Valeur")
+            ax.set_ylabel("Fréquence")
+
+            # Récupération des bonnes valeurs
+            if mode == "fenetre":
+                now = time.time()
+                while data_fenetre[i] and now - data_fenetre[i][0][0] > 5:  # 5 secondes
+                    data_fenetre[i].popleft()
+                valeurs = [v for (t, v) in data_fenetre[i]]
+            else:
+                valeurs = list(data_buffers[i])
+
+            if valeurs:
+                counts, bins = np.histogram(valeurs, bins=30, range=(0, 100))
+                colors = plt.cm.jet(counts / counts.max()) if counts.max() > 0 else 'gray'
+                ax.bar(bins[:-1], counts, width=(bins[1] - bins[0]), color=colors, align='edge')
+            else:
+                ax.text(0.5, 0.5, "Aucune donnée", ha='center', va='center', transform=ax.transAxes)
+
+ani_freq = animation.FuncAnimation(fig_freq, update_histogram, interval=interval_update_sec * 1000)
+
+# --------------------- FENETRE 2 : TEMPS RÉEL ---------------------
+fig_rt, ax_rt = plt.subplots()
+bars = ax_rt.bar(labels, [0] * num_capteurs, color='skyblue')
+ax_rt.set_ylim(0, 100)
+ax_rt.set_title("Valeurs en temps réel")
+ax_rt.set_ylabel("Valeur")
+text_labels = [ax_rt.text(i, 0, "", ha='center', va='bottom') for i in range(num_capteurs)]
+
+def update_realtime(frame):
+    with lock:
+        for i, bar in enumerate(bars):
+            val = valeurs_en_temps_reel[i]
+            bar.set_height(val)
+            text_labels[i].set_text(f"{val:.1f}")
+            text_labels[i].set_y(val + 2)
+
+ani_rt = animation.FuncAnimation(fig_rt, update_realtime, interval=200)  # plus réactif
+
+# --------------------- AFFICHAGE FINAL ---------------------
+plt.show()
+
+
+
+
+
+
     
     
     

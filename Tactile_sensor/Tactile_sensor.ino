@@ -84,24 +84,24 @@ void loop() {
 //  Serial.println(" V");
 
 //  Serial.print("Cpt2 : ") ;
-  Serial.print(capteur2);
-  Serial.print(",");
+  Serial.println(capteur2);
+//  Serial.print(",");
 //  Serial.print("\tTension : ");
 //  Serial.print(tension2, 3);
 //  Serial.println(" V");
 
 //  Serial.print("Cpt3 : ") ;
-  Serial.print(capteur3);
-  Serial.print(",");
+//  Serial.print(capteur3);
+//  Serial.print(",");
 
 //  Serial.print("Cpt4 : ");
-  Serial.print(capteur4);
-  Serial.print(",");
+//  Serial.print(capteur4);
+//  Serial.print(",");
 
-  Serial.print(capteur5);
-  Serial.print(",");
+//  Serial.print(capteur5);
+//  Serial.print(",");
 
-  Serial.println(capteur6);
+//  Serial.println(capteur6);
 
 //-------------------------Donne les coordonnées-----------------------------
 //  Serial.print("(");
