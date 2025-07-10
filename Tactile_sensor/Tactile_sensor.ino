@@ -27,8 +27,8 @@ void loop() {
   float capteur2 = (-100.0/1020)*valeurBrute2+100;
   float capteur3 = (-100.0/1020)*valeurBrute3+100;
   float capteur4 = (-100.0/1020)*valeurBrute4+100;
-  float capteur5 = -(100.0/1020)*valeurBrute5+100;
-  float capteur6 = (-100.0/1020)*valeurBrute6+100;
+  float capteur5 = -(100.0/155)*valeurBrute5+100;
+  float capteur6 = (-100.0/183)*valeurBrute6+100;
  
 //--------Pour graphique----------------------------------
 //  float x1 =  valeurBrute1 * sqrt(2)/2;
@@ -54,7 +54,7 @@ void loop() {
 //  float tension = (valeurBrute / (float)(resolution - 1)) * VREF;
 //  float tension2 = (valeurBrute2 / (float)(resolution - 1)) * VREF;
 //  Serial.print("Val brute 1 : ");
-//  Serial.println(valeurBrute);
+//  Serial.print(valeurBrute1);
 //  Serial.print("\t");
 
 //  Serial.print("Val brute 2 : ");
@@ -69,32 +69,42 @@ void loop() {
 //  Serial.print(valeurBrute4);
 //  Serial.print("\t");
 
+//  Serial.print("Val brute 5 : ");
+//  Serial.print(valeurBrute5);
+//  Serial.print("\t");
+
+//  Serial.print("Val brute 6 : ");
+//  Serial.println(valeurBrute6);
+//  Serial.print("\t");
+
 //-------------------------------Valeurs des capteurs après ajustement------------------------
-//  Serial.print("Cpt1 : ");
+  Serial.print("Cpt1 : ");
   Serial.print(capteur1);
-  Serial.print(",");
+  Serial.print("\t");
 //  Serial.print("\tTension : ");
 //  Serial.print(tension, 3);
 //  Serial.println(" V");
 
-//  Serial.print("Cpt2 : ") ;
+  Serial.print("Cpt2 : ") ;
   Serial.print(capteur2);
-  Serial.print(",");
+  Serial.print("\t");
 //  Serial.print("\tTension : ");
 //  Serial.print(tension2, 3);
 //  Serial.println(" V");
 
-//  Serial.print("Cpt3 : ") ;
+  Serial.print("Cpt3 : ") ;
   Serial.print(capteur3);
-  Serial.print(",");
+  Serial.print("\t");
 
-//  Serial.print("Cpt4 : ");
+  Serial.print("Cpt4 : ");
   Serial.print(capteur4);
-  Serial.print(",");
+  Serial.print("\t");
 
+  Serial.print("Cpt5 : ");
   Serial.print(capteur5);
-  Serial.print(",");
-
+  Serial.print("\t");
+  
+  Serial.print("Cpt6 : ");
   Serial.println(capteur6);
 
 //-------------------------Donne les coordonnées-----------------------------
