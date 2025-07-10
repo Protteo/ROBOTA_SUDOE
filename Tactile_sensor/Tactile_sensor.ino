@@ -27,8 +27,8 @@ void loop() {
   float capteur2 = (-100.0/1020)*valeurBrute2+100;
   float capteur3 = (-100.0/1020)*valeurBrute3+100;
   float capteur4 = (-100.0/1020)*valeurBrute4+100;
-  float capteur5 = -(100.0/255)*valeurBrute5+100;
-  float capteur6 = (-100.0/610)*valeurBrute6+100;
+  float capteur5 = -(100.0/1020)*valeurBrute5+100;
+  float capteur6 = (-100.0/1020)*valeurBrute6+100;
  
 //  float droite = capteur2 + capteur4;
 //  float gauche = capteur1 + capteur3;
@@ -84,24 +84,24 @@ void loop() {
 //  Serial.println(" V");
 
 //  Serial.print("Cpt2 : ") ;
-  Serial.println(capteur2);
-//  Serial.print(",");
+  Serial.print(capteur2);
+  Serial.print(",");
 //  Serial.print("\tTension : ");
 //  Serial.print(tension2, 3);
 //  Serial.println(" V");
 
 //  Serial.print("Cpt3 : ") ;
-//  Serial.print(capteur3);
-//  Serial.print(",");
+  Serial.print(capteur3);
+  Serial.print(",");
 
 //  Serial.print("Cpt4 : ");
-//  Serial.print(capteur4);
-//  Serial.print(",");
+  Serial.print(capteur4);
+  Serial.print(",");
 
-//  Serial.print(capteur5);
-//  Serial.print(",");
+  Serial.print(capteur5);
+  Serial.print(",");
 
-//  Serial.println(capteur6);
+  Serial.println(capteur6);
 
 //-------------------------Donne les coordonnées-----------------------------
 //  Serial.print("(");
