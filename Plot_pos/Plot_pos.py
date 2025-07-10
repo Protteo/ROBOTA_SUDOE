@@ -138,19 +138,39 @@ interval_update_sec = 1  # fréquence de mise à jour histogramme (en secondes)
 num_capteurs = 6
 port_serial = "COM3"
 baudrate = 9600
+acquisition_active = True
 
 # --------------------- INITIALISATION ---------------------
 ser = serial.Serial(port_serial, baudrate, timeout=1)
+def on_close(event):
+    global fenetres_ouvertes, acquisition_active, thread_acq
+    fenetres_ouvertes -= 1
+    if fenetres_ouvertes == 0:
+        print("Toutes les fenêtres sont fermées. Fermeture du port série...")
+        acquisition_active = False
+        if thread_acq is not None:
+            thread_acq.join(timeout=2)  # Attend la fin du thread (max 2s)
+        try:
+            ser.close()
+            print("Port série fermé proprement.")
+        except:
+            print("Erreur lors de la fermeture du port série.")
+
+
 labels = [f"Capteur {i+1}" for i in range(num_capteurs)]
 data_buffers = [deque() for _ in range(num_capteurs)]      # Historique complet
 data_fenetre = [deque() for _ in range(num_capteurs)]      # Fenêtre glissante 5s
 valeurs_en_temps_reel = [0.0 for _ in range(num_capteurs)] # Dernières valeurs
+# Nouveau : pour gérer la fermeture propre des deux fenêtres
+fenetres_ouvertes = 2  # nombre total de fenêtres à gérer
+
 
 lock = threading.Lock()
 
 # --------------------- THREAD DE LECTURE SERIE ---------------------
 def lire_serial():
-    while True:
+    global acquisition_active
+    while acquisition_active:
         try:
             line = ser.readline().decode(errors='ignore').strip()
             valeurs = list(map(float, line.split(",")))
@@ -170,7 +190,7 @@ thread_acq = threading.Thread(target=lire_serial, daemon=True)
 thread_acq.start()
 
 # Petit délai pour laisser l'acquisition série démarrer
-time.sleep(1)
+# time.sleep(1)
 
 # --------------------- FENETRE 1 : HISTOGRAMMES ---------------------
 fig_freq, axs_freq = plt.subplots(1, num_capteurs, figsize=(6 * num_capteurs, 4))
@@ -227,6 +247,11 @@ def update_realtime(frame):
         text_labels[i].set_y(val + 2)
 
 ani_rt = animation.FuncAnimation(fig_rt, update_realtime, interval=200)
+
+#----------------------Ferme le port série proprement
+# Attache cette fonction aux deux fenêtres
+fig_freq.canvas.mpl_connect("close_event", on_close)
+fig_rt.canvas.mpl_connect("close_event", on_close)
 
 # --------------------- AFFICHAGE FINAL ---------------------
 plt.show()
