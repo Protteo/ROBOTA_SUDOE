@@ -131,6 +131,7 @@ from collections import deque
 import threading
 import numpy as np
 import time
+from mpl_toolkits.mplot3d import Axes3D
 
 # --------------------- CONFIGURATION ---------------------
 mode = "fenetre"  # "continu" ou "fenetre"
@@ -162,7 +163,7 @@ data_buffers = [deque() for _ in range(num_capteurs)]      # Historique complet
 data_fenetre = [deque() for _ in range(num_capteurs)]      # Fenêtre glissante 5s
 valeurs_en_temps_reel = [0.0 for _ in range(num_capteurs)] # Dernières valeurs
 # Nouveau : pour gérer la fermeture propre des deux fenêtres
-fenetres_ouvertes = 2  # nombre total de fenêtres à gérer
+fenetres_ouvertes = 3  # nombre total de fenêtres à gérer
 
 
 lock = threading.Lock()
@@ -253,7 +254,67 @@ ani_rt = animation.FuncAnimation(fig_rt, update_realtime, interval=200)
 fig_freq.canvas.mpl_connect("close_event", on_close)
 fig_rt.canvas.mpl_connect("close_event", on_close)
 
-# --------------------- AFFICHAGE FINAL ---------------------
+# --------------------- FENETRE 3 : 3D MANCHE + CENTRE DES FORCES
+fig_3d = plt.figure()
+ax_3d = fig_3d.add_subplot(111, projection='3d')
+fig_3d.canvas.mpl_connect("close_event", on_close)
+
+# Coordonnées fixes des capteurs [x, y, z] en cm
+capteurs_coords = np.array([
+    [2, -1.5, 0.5],  # Capteur 1
+    [2, +1.5, 0.5],  # Capteur 2
+    [8, -1.5, 0.5],  # Capteur 3
+    [8, +1.5, 0.5],  # Capteur 4
+    [5, 0.0, 2.0],   # Capteur 5
+    [2, 0.0, 2.0],   # Capteur 6
+])
+
+# Manche dimensions (pour affichage)
+manche_length = 10
+manche_width = 3
+manche_height = 2
+
+# Boîte du manche pour visuel
+def draw_manche(ax):
+    # Crée les coins d'une boîte
+    from itertools import product, combinations
+    r = [0, manche_length]
+    w = [-manche_width/2, manche_width/2]
+    h = [0, manche_height]
+    points = list(product(r, w, h))
+    for s, e in combinations(points, 2):
+        if sum([s[i] != e[i] for i in range(3)]) == 1:
+            ax.plot3D(*zip(s, e), color="gray", alpha=0.4)
+
+def update_3d(frame):
+    with lock:
+        forces = np.array(valeurs_en_temps_reel)
+    
+    ax_3d.clear()
+    draw_manche(ax_3d)
+    
+    ax_3d.set_xlim(0, manche_length)
+    ax_3d.set_ylim(-manche_width/2 - 1, manche_width/2 + 1)
+    ax_3d.set_zlim(0, manche_height + 1)
+    ax_3d.set_title("Manche + Centre des forces")
+    ax_3d.set_xlabel("X (longueur)")
+    ax_3d.set_ylabel("Y (largeur)")
+    ax_3d.set_zlabel("Z (hauteur)")
+
+    # Affiche capteurs
+    for i, (x, y, z) in enumerate(capteurs_coords):
+        ax_3d.scatter(x, y, z, color='blue')
+        ax_3d.text(x, y, z + 0.2, f"{i+1}", color='blue')
+    # Calcul du centre de force
+    if np.sum(forces) > 0:
+        center_force = np.average(capteurs_coords, axis=0, weights=forces)
+        ax_3d.scatter(*center_force, color='red', s=100, label='Centre des forces')
+        ax_3d.legend()
+
+ani_3d = animation.FuncAnimation(fig_3d, update_3d, interval=200)
+
+
+# --------------------- AFFICHAGE FINAL 
 plt.show()
 
 
