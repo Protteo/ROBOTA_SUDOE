@@ -131,7 +131,11 @@ from collections import deque
 import threading
 import numpy as np
 import time
+from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.patches import Rectangle
 from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.widgets as widgets
+
 
 # --------------------- CONFIGURATION ---------------------
 mode = "fenetre"  # "continu" ou "fenetre"
@@ -163,7 +167,7 @@ data_buffers = [deque() for _ in range(num_capteurs)]      # Historique complet
 data_fenetre = [deque() for _ in range(num_capteurs)]      # Fenêtre glissante 5s
 valeurs_en_temps_reel = [0.0 for _ in range(num_capteurs)] # Dernières valeurs
 # Nouveau : pour gérer la fermeture propre des deux fenêtres
-fenetres_ouvertes = 3  # nombre total de fenêtres à gérer
+fenetres_ouvertes = 4  # nombre total de fenêtres à gérer
 
 
 lock = threading.Lock()
@@ -313,6 +317,66 @@ def update_3d(frame):
 
 ani_3d = animation.FuncAnimation(fig_3d, update_3d, interval=200)
 
+# --------------------- FENETRE 4 : AFFICHAGE DES 3 FLANCS ---------------------
+fig_color, ax_color = plt.subplots()
+fig_color.canvas.mpl_connect("close_event", on_close)
+fig_color.subplots_adjust(bottom=0.2)
+
+# Rectangle + 2 zones par face (gauche, haut, droite)
+rects = {}
+positions = [0.2, 0.5, 0.8]
+capteurs_zones = [(0, 2), (5, 4), (1, 3)]  # Gauche, Haut, Droite
+
+# Couleur personnalisée vert -> rouge
+green_red = LinearSegmentedColormap.from_list("green_red", ["blue", "red"])
+
+acquisition_en_cours = True
+start_time = time.time()
+donnees_10s = [[] for _ in range(num_capteurs)]
+
+# Zones dessinées
+for i, x in enumerate(positions):
+    rects[f"{i}_top"] = ax_color.add_patch(Rectangle((x - 0.05, 0.6), 0.1, 0.3, color='gray'))
+    rects[f"{i}_bot"] = ax_color.add_patch(Rectangle((x - 0.05, 0.2), 0.1, 0.3, color='gray'))
+
+ax_color.set_xlim(0, 1)
+ax_color.set_ylim(0, 1)
+ax_color.axis('off')
+ax_color.set_title("Zones de pression sur le manche (10s)")
+
+# Bouton réinitialiser
+ax_button = plt.axes([0.4, 0.05, 0.2, 0.075])
+button = widgets.Button(ax_button, 'Réinitialiser')
+
+def reset_acquisition(event):
+    global acquisition_en_cours, start_time, donnees_10s
+    acquisition_en_cours = True
+    start_time = time.time()
+    donnees_10s = [[] for _ in range(num_capteurs)]
+    for r in rects.values():
+        r.set_color("gray")
+
+button.on_clicked(reset_acquisition)
+
+def update_color(frame):
+    global acquisition_en_cours
+    if not acquisition_en_cours:
+        return
+
+    now = time.time()
+    with lock:
+        for i in range(num_capteurs):
+            donnees_10s[i].append(valeurs_en_temps_reel[i])
+
+    if now - start_time >= 10:
+        acquisition_en_cours = False
+        for idx, (top_id, bot_id) in enumerate(capteurs_zones):
+            moyenne_top = np.mean(donnees_10s[top_id])
+            moyenne_bot = np.mean(donnees_10s[bot_id])
+            rects[f"{idx}_top"].set_color(green_red(moyenne_top / 100))
+            rects[f"{idx}_bot"].set_color(green_red(moyenne_bot / 100))
+
+ani_color = animation.FuncAnimation(fig_color, update_color, interval=200)
 
 # --------------------- AFFICHAGE FINAL 
 plt.show()
