@@ -122,6 +122,41 @@ import serial.tools.list_ports
 ports = serial.tools.list_ports.comports()
 for p in ports:
     print(f"{p.device}: {p.description}")
+
+#%%------------------------Lecture de la carte inconnue------------------------
+import serial
+import time
+
+SERIAL_PORT = 'COM4'  # À adapter selon le port correct
+BAUDRATE = 115200
+
+def parse_line(line):
+    try:
+        parts = line.strip().split()
+        data = {}
+        for part in parts:
+            if ':' in part:
+                key, val = part.split(':')
+                data[key] = float(val)
+        return data
+    except Exception as e:
+        print(f"Erreur de parsing : {e}")
+        return None
+
+ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=1)
+time.sleep(2)  # Attente que l'ESP32 soit prêt
+
+try:
+    while True:
+        line = ser.readline().decode('utf-8', errors='ignore')
+        data = parse_line(line)
+        if data:
+            print(data)  # Affichage brut, ou traitement plus avancé ici
+except KeyboardInterrupt:
+    print("Arrêt par l'utilisateur.")
+finally:
+    ser.close()
+
     
 #%%--------------------Acquisition avec diagramme couleurs---------------------
 import serial
@@ -141,7 +176,7 @@ import matplotlib.widgets as widgets
 mode = "fenetre"  # "continu" ou "fenetre"
 interval_update_sec = 1  # fréquence de mise à jour histogramme (en secondes)
 num_capteurs = 6
-port_serial = "COM3"
+port_serial = "COM4"
 baudrate = 9600
 acquisition_active = True
 
@@ -269,7 +304,7 @@ capteurs_coords = np.array([
     [2, +1.5, 0.5],  # Capteur 2
     [8, -1.5, 0.5],  # Capteur 3
     [8, +1.5, 0.5],  # Capteur 4
-    [5, 0.0, 2.0],   # Capteur 5
+    [8, 0.0, 2.0],   # Capteur 5
     [2, 0.0, 2.0],   # Capteur 6
 ])
 
