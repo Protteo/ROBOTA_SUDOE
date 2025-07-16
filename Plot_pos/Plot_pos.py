@@ -187,7 +187,7 @@ import matplotlib.widgets as widgets
 mode = "fenetre"  # "continu" ou "fenetre"
 interval_update_sec = 1  # fréquence de mise à jour histogramme (en secondes)
 num_capteurs = 6
-port_serial = "COM4"
+port_serial = "COM3"
 baudrate = 9600
 acquisition_active = True
 
