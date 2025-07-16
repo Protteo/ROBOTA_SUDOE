@@ -8,11 +8,11 @@ const int capteurPin6 = A13;
 
 
 const float VREF = 3.3;    // Tension de référence analogique (adapter à ton Teensy)
-const int resolution = 1024; // Résolution ADC (10 bits sur Teensy 3.2 ; 12 bits possible)
+const int resolution = 4096; // Résolution ADC (10 bits sur Teensy 3.2 ; 12 bits possible)
 
 void setup() {
   Serial.begin(9600);
-  analogReadResolution(10); // Mettre à 12 si ton Teensy le permet : analogReadResolution(12);
+  analogReadResolution(12); // Mettre à 12 si ton Teensy le permet : analogReadResolution(12);
 }
 
 void loop() {
@@ -23,12 +23,12 @@ void loop() {
   float valeurBrute5 = analogRead(capteurPin5);
   float valeurBrute6 = analogRead(capteurPin6);
 
-  float capteur1 = (-100.0/1020)*valeurBrute1+100;
-  float capteur2 = (-100.0/1020)*valeurBrute2+100;
-  float capteur3 = (-100.0/1020)*valeurBrute3+100;
-  float capteur4 = (-100.0/1020)*valeurBrute4+100;
-  float capteur5 = -(100.0/240)*valeurBrute5+100;
-  float capteur6 = (-100.0/275)*valeurBrute6+100;
+  float capteur1 = -1*valeurBrute1+4096;
+  float capteur2 = -1*valeurBrute2+4096;
+  float capteur3 = -1*valeurBrute3+4096;
+  float capteur4 = -1*valeurBrute4+4096;
+  float capteur5 = -(4096.0/1000)*valeurBrute5+4096;
+  float capteur6 = -(4096.0/1150)*valeurBrute6+4096;
  
 //--------Pour graphique----------------------------------
 //  float x1 =  valeurBrute1 * sqrt(2)/2;
@@ -55,23 +55,23 @@ void loop() {
 //  float tension2 = (valeurBrute2 / (float)(resolution - 1)) * VREF;
 //  Serial.print("Val brute 1 : ");
 //  Serial.print(valeurBrute1);
-//  Serial.print("\t");
+//  Serial.print(",");
 
 //  Serial.print("Val brute 2 : ");
 //  Serial.print(valeurBrute2);
-//  Serial.print("\t");
+//  Serial.print(",");
   
 //  Serial.print("Val brute 3 : ");
 //  Serial.print(valeurBrute3);
-//  Serial.print("\t");
+//  Serial.print(",");
 
 //  Serial.print("Val brute 4 : ");
 //  Serial.print(valeurBrute4);
-//  Serial.print("\t");
+//  Serial.print(",");
 
 //  Serial.print("Val brute 5 : ");
 //  Serial.print(valeurBrute5);
-//  Serial.print("\t");
+//  Serial.print(",");
 
 //  Serial.print("Val brute 6 : ");
 //  Serial.println(valeurBrute6);

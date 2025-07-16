@@ -283,7 +283,7 @@ ani_freq = animation.FuncAnimation(fig_freq, update_histogram, interval=interval
 # --------------------- FENETRE 2 : TEMPS REEL ---------------------
 fig_rt, ax_rt = plt.subplots()
 bars = ax_rt.bar(labels, [0] * num_capteurs, color='skyblue')
-ax_rt.set_ylim(0, 100)
+ax_rt.set_ylim(0, 4096)
 ax_rt.set_title("Valeurs en temps réel")
 ax_rt.set_ylabel("Valeur")
 text_labels = [ax_rt.text(i, 0, "", ha='center', va='bottom') for i in range(num_capteurs)]
