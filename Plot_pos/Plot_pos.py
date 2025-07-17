@@ -123,7 +123,7 @@ import matplotlib.animation as animation
 import re
 
 # Paramètres de connexion série
-SERIAL_PORT = 'COM4'  # À adapter selon ton port
+SERIAL_PORT = 'COM4'  # À adapter
 BAUDRATE = 115200
 
 # Initialisation de la liaison série
@@ -131,22 +131,22 @@ ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=1)
 
 # Initialisation du graphique
 fig, ax = plt.subplots()
-bar_labels = [f'R{i+1}' for i in range(8)]
-bar_values = [0] * 8
+bar_labels = [f'R{i+1}' for i in range(6)]  # 6 capteurs
+bar_values = [0] * 6
 bars = ax.bar(bar_labels, bar_values, color='skyblue')
-value_texts = [ax.text(i, 0, '', ha='center', va='bottom') for i in range(8)]
+value_texts = [ax.text(i, 0, '', ha='center', va='bottom') for i in range(6)]
 
-ax.set_ylim(0, 2000)  # Échelle à adapter si besoin
-ax.set_title("Valeurs brutes des capteurs R1 à R8")
+ax.set_ylim(0, 2000)
+ax.set_title("Valeurs brutes des capteurs R1 à R6")
 ax.set_ylabel("Valeur brute")
 
-# Fonction pour parser une ligne de type : "R1:565 R2:343 ... R8:XXX BTN:0"
+# Fonction pour parser une ligne de type : "R1:565 R2:343 ... R6:XXX BTN:0"
 def parse_line(line):
     matches = re.findall(r'R(\d):(\d+)', line)
-    values = [0] * 8
+    values = [0] * 6
     for sensor, val in matches:
         index = int(sensor) - 1
-        if 0 <= index < 8:
+        if 0 <= index < 6:
             values[index] = int(val)
     return values
 
@@ -159,12 +159,23 @@ def update(frame):
             for i, val in enumerate(values):
                 bars[i].set_height(val)
                 value_texts[i].set_text(str(val))
-                value_texts[i].set_y(val + 20)  # Décalage du texte
+                value_texts[i].set_y(val + 20)
     except Exception as e:
         print("Erreur :", e)
 
-ani = animation.FuncAnimation(fig, update, interval=200)
+# Fonction appelée à la fermeture de la figure
+def on_close(event):
+    print("Fermeture de la fenêtre. Libération du port série...")
+    if ser.is_open:
+        ser.close()
+
+# Connexion de l'événement de fermeture
+fig.canvas.mpl_connect('close_event', on_close)
+
+ani = animation.FuncAnimation(fig, update, interval=50)
 plt.show()
+
+
 
 
 
