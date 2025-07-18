@@ -116,7 +116,7 @@ def reset(event):
 # reset_button = Button(reset_ax, 'Reset')
 # reset_button.on_clicked(reset)
 
-#%%-------------------------Ports séries actifs avec description---------------
+#%%-------------------------Manche matière souple---------------
 import serial
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -176,7 +176,30 @@ ani = animation.FuncAnimation(fig, update, interval=50)
 plt.show()
 
 
+#%%--------------------Ports séries avec descritpions--------------------------
+import serial.tools.list_ports
 
+def lister_ports_usb():
+    """
+    Cette fonction recherche et affiche la liste des ports COM/USB actifs.
+    """
+    ports = serial.tools.list_ports.comports()
+    
+    print("Recherche des ports USB utilisés...")
+    
+    if not ports:
+        print("Aucun port USB actif n'a été trouvé.")
+    else:
+        print(f"{len(ports)} port(s) trouvé(s) :")
+        for port in sorted(ports):
+            # Affiche le nom du port (ex: COM3), sa description et son identifiant matériel
+            print(f"  - Port: {port.device}")
+            print(f"    Description: {port.description}")
+            print(f"    ID Matériel: {port.hwid}")
+            print("-" * 20)
+
+if __name__ == "__main__":
+    lister_ports_usb()
 
 
     
@@ -481,3 +504,5 @@ plt.show()
     
     
     
+
+# %%
