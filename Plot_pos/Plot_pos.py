@@ -217,7 +217,6 @@ from matplotlib.patches import Rectangle
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.widgets as widgets
 
-
 # --------------------- CONFIGURATION ---------------------
 mode = "fenetre"  # "continu" ou "fenetre"
 interval_update_sec = 1  # fréquence de mise à jour histogramme (en secondes)
@@ -462,47 +461,54 @@ ani_color = animation.FuncAnimation(fig_color, update_color, interval=200)
 # --------------------- AFFICHAGE FINAL 
 plt.show()
 
+#%%----------------Voit la trame de la carte arduino---------------------------
+import serial
+import threading
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
+# === Configuration série ===
+PORT = 'COM3'  # Remplace par ton port réel, ex: 'COM5'
+BAUDRATE = 115200
+
+# === Données capteurs ===
+sensor_values = [0] * 6  # 6 capteurs
+
+# === Ouverture du port série ===
+try:
+    ser = serial.Serial(PORT, BAUDRATE, timeout=1)
+    print(f"Port série ouvert : {PORT}")
+except Exception as e:
+    print("Erreur d'ouverture du port série :", e)
+    raise SystemExit
+
+# === Lecture série en thread ===
+def lecture_serie():
+    while True:
+        try:
+            line = ser.readline().decode().strip()
+            print("Trame reçue :", line)  # Ajoute ceci
+            ...
+        except Exception as e:
+            print("Erreur :", e)
 
 
+threading.Thread(target=lecture_serie, daemon=True).start()
 
+# === Affichage simple ===
+fig, ax = plt.subplots()
+barres = ax.bar(range(6), sensor_values)
 
+def update(frame):
+    for rect, h in zip(barres, sensor_values):
+        rect.set_height(h)
+    return barres
 
+ani = animation.FuncAnimation(fig, update, interval=200)
 
+plt.ylim(0, 1023)
+plt.title("Valeurs capteurs en temps réel")
+plt.xlabel("Capteur")
+plt.ylabel("Valeur")
+plt.show()
 
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-# %%
