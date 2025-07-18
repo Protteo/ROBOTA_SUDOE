@@ -189,6 +189,7 @@ import threading
 import numpy as np
 import time
 from matplotlib.colors import LinearSegmentedColormap
+
 from matplotlib.patches import Rectangle
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.widgets as widgets
