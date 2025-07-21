@@ -331,7 +331,7 @@ def update_realtime(frame):
         text_labels[i].set_text(f"{val:.1f}")
         text_labels[i].set_y(val + 2)
 
-ani_rt = animation.FuncAnimation(fig_rt, update_realtime, interval=200)
+ani_rt = animation.FuncAnimation(fig_rt, update_realtime, interval=100)
 
 #----------------------Ferme le port série proprement
 # Attache cette fonction aux deux fenêtres
