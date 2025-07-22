@@ -79,15 +79,15 @@ void loop() {
 
 //-------------------------------Valeurs des capteurs après ajustement------------------------
 //  Serial.print("Cpt1 : ");
-  Serial.print(capteur1);
-  Serial.print(",");
+//  Serial.print(capteur1);
+//  Serial.print(",");
 //  Serial.print("\tTension : ");
 //  Serial.print(tension, 3);
 //  Serial.println(" V");
 
 //  Serial.print("Cpt2 : ") ;
-  Serial.print(capteur2);
-  Serial.print(",");
+//  Serial.print(capteur2);
+//  Serial.print(",");
 //  Serial.print("\tTension : ");
 //  Serial.print(tension2, 3);
 //  Serial.println(" V");
@@ -97,15 +97,15 @@ void loop() {
   Serial.print(",");
 
 //  Serial.print("Cpt4 : ");
-  Serial.print(capteur4);
-  Serial.print(",");
+  Serial.println(capteur4);
+//  Serial.print(",");
 
 //  Serial.print("Cpt5 : ");
-  Serial.print(capteur5);
-  Serial.print(",");
+//  Serial.print(capteur5);
+//  Serial.print(",");
   
 //  Serial.print("Cpt6 : ");
-  Serial.println(capteur6);
+//  Serial.println(capteur6);
 
 //-------------------------Donne les coordonnées-----------------------------
 //  Serial.print("(");

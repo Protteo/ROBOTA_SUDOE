@@ -286,14 +286,17 @@ def prediction_temps_reel():
 
 
 if __name__ == "__main__":
-    mode = input("Choisissez le mode : (a)cquisition ou (p)rédiction ? : ").lower()
+    mode = input("Choisissez le mode : (a)cquisition, (p)rédiction ou (e)ntraînement ? : ").lower()
     if mode == 'a':
         initialiser_csv()
         acquisition_par_positions()
     elif mode == 'p':
         prediction_temps_reel()
+    elif mode == 'e':
+        entrainer_modele()
     else:
         print("Mode inconnu.")
+
 
 
 
@@ -301,17 +304,17 @@ if __name__ == "__main__":
 import csv
 from collections import Counter
 
-NOM_FICHIER_CSV = "donnees_manche.csv"
+NOM_FICHIER_CSV = "donnees_manche_2_cpt.csv"
 
 def compter_classes(nom_fichier):
     labels = []
     with open(nom_fichier, newline='') as f:
         reader = csv.reader(f)
         for row in reader:
-            if len(row) != 7:
+            if len(row) != 3:
                 continue
             try:
-                label = int(row[6])
+                label = int(row[2])
                 labels.append(label)
             except:
                 continue

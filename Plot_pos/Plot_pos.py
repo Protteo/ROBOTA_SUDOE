@@ -468,8 +468,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 # === Configuration série ===
-PORT = 'COM5'  # Remplace par ton port réel, ex: 'COM5'
-BAUDRATE = 115200
+PORT = 'COM3'  # Remplace par ton port réel, ex: 'COM5'
+BAUDRATE = 9600
 
 # === Données capteurs ===
 sensor_values = [0] * 6  # 6 capteurs
