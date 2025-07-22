@@ -123,7 +123,7 @@ import matplotlib.animation as animation
 import re
 
 # Paramètres de connexion série
-SERIAL_PORT = 'COM4'  # À adapter
+SERIAL_PORT = 'COM5'  # À adapter
 BAUDRATE = 115200
 
 # Initialisation de la liaison série
@@ -468,7 +468,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 # === Configuration série ===
-PORT = 'COM3'  # Remplace par ton port réel, ex: 'COM5'
+PORT = 'COM5'  # Remplace par ton port réel, ex: 'COM5'
 BAUDRATE = 115200
 
 # === Données capteurs ===
