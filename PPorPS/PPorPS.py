@@ -153,8 +153,8 @@ import joblib
 
 PORT_SERIE = 'COM3'
 BAUDRATE = 9600
-N_CAPTEURS = 6
-CSV_FILENAME = "donnees_manche.csv"
+N_CAPTEURS = 2
+CSV_FILENAME = "donnees_manche_2_cpt.csv"
 SCALER_FILENAME = "scaler_manche.pkl"
 MODEL_FILENAME = "modele_manche.pkl"
 TEMPS_ACQUISITION_PAR_POSITION = 60  # secondes
