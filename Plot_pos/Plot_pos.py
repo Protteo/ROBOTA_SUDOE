@@ -178,6 +178,8 @@ plt.show()
 
 #%%--------------------Ports séries avec descritpions--------------------------
 import serial.tools.list_ports
+import psutil
+import socket
 
 def lister_ports_usb():
     """
@@ -200,6 +202,28 @@ def lister_ports_usb():
 
 if __name__ == "__main__":
     lister_ports_usb()
+
+
+
+def lister_interfaces_ip():
+    """
+    Liste toutes les interfaces réseau actives avec leurs adresses IP.
+    """
+    interfaces = psutil.net_if_addrs()
+    print("Interfaces réseau détectées :\n")
+
+    for nom_interface, addrs in interfaces.items():
+        print(f"Interface : {nom_interface}")
+        for addr in addrs:
+            if addr.family == socket.AF_INET:
+                print(f"  Adresse IPv4 : {addr.address}")
+                print(f"  Masque réseau : {addr.netmask}")
+            elif addr.family == socket.AF_INET6:
+                print(f"  Adresse IPv6 : {addr.address}")
+        print("-" * 30)
+
+if __name__ == "__main__":
+    lister_interfaces_ip()
 
 
     
