@@ -536,3 +536,87 @@ plt.xlabel("Capteur")
 plt.ylabel("Valeur")
 plt.show()
 
+#%%--------------Trouve IP de la compute box-----------------------------------
+import subprocess
+import ipaddress
+import platform
+import re
+import time
+from tqdm import tqdm  # Assure-toi que tqdm est installé : pip install tqdm
+
+base_ip = "169.254.247.0/24"
+
+def ping_ip(ip):
+    param = "-n" if platform.system().lower() == "windows" else "-c"
+    try:
+        subprocess.run(["ping", param, "1", str(ip)],
+                       stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL)
+    except Exception as e:
+        print(f"Erreur lors du ping vers {ip} : {e}")
+
+def scanner_reseau(plage_ip):
+    print(f"⏳ Scan de la plage IP {plage_ip} via ping...\n")
+    ip_net = ipaddress.ip_network(plage_ip, strict=False)
+
+    for ip in tqdm(ip_net.hosts(), desc="Scan IP", unit="IP"):
+        ping_ip(ip)
+
+def afficher_table_arp():
+    print("\n📋 Table ARP après scan :\n")
+    try:
+        output = subprocess.check_output("arp -a", shell=True, encoding='utf-8', errors='ignore')
+    except Exception as e:
+        print(f"Erreur lors de l'accès à la table ARP : {e}")
+        return
+
+    entries = re.findall(r'(\d+\.\d+\.\d+\.\d+)\s+([a-f0-9:-]+)', output, re.I)
+    if not entries:
+        print("Aucune entrée ARP détectée.")
+    else:
+        for ip, mac in entries:
+            print(f"🟢 IP : {ip}  →  MAC : {mac}")
+
+if __name__ == "__main__":
+    scanner_reseau(base_ip)
+    print("\n⌛ Attente 2 secondes pour mise à jour de la table ARP...")
+    time.sleep(2)
+    afficher_table_arp()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
