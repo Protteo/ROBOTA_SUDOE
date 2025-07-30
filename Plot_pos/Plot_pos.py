@@ -282,7 +282,7 @@ def lire_serial():
     while acquisition_active:
         try:
             line = ser.readline().decode(errors='ignore').strip()
-            valeurs = list(map(float, line.split(",")))
+            valeurs = list(map(float, line.split(","))) 
             if len(valeurs) != num_capteurs:
                 continue
             now = time.time()
