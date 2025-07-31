@@ -308,17 +308,25 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import joblib
 import re
-import os
-print("Répertoire courant :", os.getcwd())
 
+# 🟡 Chemin à définir MANUELLEMENT ICI :
+DOSSIER_UTILISATEUR = r"C:\Users\matte\OneDrive\Documents\Scolaire\Sigma\2A\Stage\ROBOTA SUDOE\Tactile_sensor\Capteurs_tactiles\PPorPS"  # ← Modifie ce chemin
+
+# Vérifie que le chemin existe
+if not os.path.isdir(DOSSIER_UTILISATEUR):
+    print(f"❌ Le dossier '{DOSSIER_UTILISATEUR}' n'existe pas.")
+    exit(1)
+
+print(f"✅ Les fichiers seront créés dans : {DOSSIER_UTILISATEUR}")
+
+# Chemins complets des fichiers
+CSV_FILENAME = os.path.join(DOSSIER_UTILISATEUR, "donnees_manche_souple.csv")
+SCALER_FILENAME = os.path.join(DOSSIER_UTILISATEUR, "scaler_manche.pkl")
+MODEL_FILENAME = os.path.join(DOSSIER_UTILISATEUR, "modele_manche.pkl")
 
 PORT_SERIE = 'COM4'
 BAUDRATE = 115200
 N_CAPTEURS = 6
-CSV_FILENAME = "donnees_manche_souple.csv"
-SCALER_FILENAME = "scaler_manche.pkl"
-MODEL_FILENAME = "modele_manche.pkl"
-
 
 def initialiser_csv():
     if os.path.exists(CSV_FILENAME):
@@ -330,7 +338,6 @@ def initialiser_csv():
             print("Les nouvelles données seront ajoutées au fichier existant.")
     else:
         print("Le fichier n'existe pas, il sera créé.")
-
 
 def lire_donnees_serie(ser):
     try:
@@ -345,7 +352,6 @@ def lire_donnees_serie(ser):
     except Exception:
         pass
     return None
-
 
 def acquisition_par_positions():
     try:
@@ -398,7 +404,6 @@ def acquisition_par_positions():
     except Exception as e:
         print(f"Erreur : {e}")
 
-
 def entrainer_modele():
     if not os.path.exists(CSV_FILENAME):
         print("Aucune donnée d'entraînement trouvée.")
@@ -420,7 +425,6 @@ def entrainer_modele():
     joblib.dump(model, MODEL_FILENAME)
     print("🧠 Modèle entraîné et sauvegardé.")
     return model, scaler
-
 
 def prediction_temps_reel():
     if not os.path.exists(MODEL_FILENAME) or not os.path.exists(SCALER_FILENAME):
@@ -447,7 +451,6 @@ def prediction_temps_reel():
     except KeyboardInterrupt:
         print("\n⛔ Arrêt des prédictions.")
         ser.close()
-
 
 if __name__ == "__main__":
     mode = input("Choisissez le mode : (a)cquisition, (p)rédiction ou (e)ntraînement ? : ").lower()
