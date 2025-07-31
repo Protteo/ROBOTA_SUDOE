@@ -308,6 +308,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import joblib
 import re
+import os
+print("Répertoire courant :", os.getcwd())
+
 
 PORT_SERIE = 'COM4'
 BAUDRATE = 115200
