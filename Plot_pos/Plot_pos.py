@@ -538,6 +538,243 @@ ani_color = animation.FuncAnimation(fig_color, update_color, interval=200)
 # --------------------- AFFICHAGE FINAL 
 plt.show()
 
+
+#%%----------------Histogrammesx4 vscode---------------------------------------
+import matplotlib
+matplotlib.use('tkagg')  # Important : utiliser le backend tk pour VSCode
+
+import serial
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from collections import deque
+import threading
+import numpy as np
+import time
+from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.patches import Rectangle
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.widgets as widgets
+
+# --------------------- CONFIGURATION ---------------------
+mode = "fenetre"  # "continu" ou "fenetre"
+interval_update_sec = 1  # fréquence de mise à jour histogramme (en secondes)
+num_capteurs = 6
+port_serial = "COM4"  # adapte le port COM si nécessaire
+baudrate = 9600
+acquisition_active = True
+
+# --------------------- INITIALISATION ---------------------
+ser = serial.Serial(port_serial, baudrate, timeout=1)
+def on_close(event):
+    global fenetres_ouvertes, acquisition_active, thread_acq
+    fenetres_ouvertes -= 1
+    if fenetres_ouvertes == 0:
+        print("Toutes les fenêtres sont fermées. Fermeture du port série...")
+        acquisition_active = False
+        if thread_acq is not None:
+            thread_acq.join(timeout=2)  # Attend la fin du thread (max 2s)
+        try:
+            ser.close()
+            print("Port série fermé proprement.")
+        except:
+            print("Erreur lors de la fermeture du port série.")
+
+labels = [f"Capteur {i+1}" for i in range(num_capteurs)]
+data_buffers = [deque() for _ in range(num_capteurs)]
+data_fenetre = [deque() for _ in range(num_capteurs)]
+valeurs_en_temps_reel = [0.0 for _ in range(num_capteurs)]
+fenetres_ouvertes = 4
+lock = threading.Lock()
+
+# --------------------- THREAD DE LECTURE SERIE ---------------------
+def lire_serial():
+    global acquisition_active
+    while acquisition_active:
+        try:
+            line = ser.readline().decode(errors='ignore').strip()
+            valeurs = list(map(float, line.split(","))) 
+            if len(valeurs) != num_capteurs:
+                continue
+            now = time.time()
+            with lock:
+                for i in range(num_capteurs):
+                    val = valeurs[i]
+                    valeurs_en_temps_reel[i] = val
+                    data_buffers[i].append(val)
+                    data_fenetre[i].append((now, val))
+        except Exception:
+            continue
+
+thread_acq = threading.Thread(target=lire_serial, daemon=True)
+thread_acq.start()
+
+# --------------------- FENETRE 1 : HISTOGRAMMES ---------------------
+fig_freq, axs_freq = plt.subplots(1, num_capteurs, figsize=(6 * num_capteurs, 4))
+if num_capteurs == 1:
+    axs_freq = [axs_freq]
+
+def update_histogram(frame):
+    with lock:
+        now = time.time()
+        snapshots = []
+        for i in range(num_capteurs):
+            if mode == "fenetre":
+                while data_fenetre[i] and now - data_fenetre[i][0][0] > 5:
+                    data_fenetre[i].popleft()
+                valeurs = [v for (t, v) in data_fenetre[i]]
+            else:
+                valeurs = list(data_buffers[i])
+            snapshots.append(valeurs)
+
+    for i in range(num_capteurs):
+        ax = axs_freq[i]
+        ax.clear()
+        ax.set_title(f"Capteur {i+1} – Mode: {mode}")
+        ax.set_xlim(0, 100)
+        ax.set_ylim(0, 50)
+        ax.set_xlabel("Valeur")
+        ax.set_ylabel("Fréquence")
+
+        valeurs = snapshots[i]
+        if valeurs:
+            counts, bins = np.histogram(valeurs, bins=30, range=(0, 100))
+            colors = plt.cm.jet(counts / counts.max()) if counts.max() > 0 else 'gray'
+            ax.bar(bins[:-1], counts, width=(bins[1] - bins[0]), color=colors, align='edge')
+        else:
+            ax.text(0.5, 0.5, "Aucune donnée", ha='center', va='center', transform=ax.transAxes)
+
+ani_freq = animation.FuncAnimation(fig_freq, update_histogram, interval=interval_update_sec * 1000)
+
+# --------------------- FENETRE 2 : TEMPS REEL ---------------------
+fig_rt, ax_rt = plt.subplots()
+bars = ax_rt.bar(labels, [0] * num_capteurs, color='skyblue')
+ax_rt.set_ylim(0, 4096)
+ax_rt.set_title("Valeurs en temps réel")
+ax_rt.set_ylabel("Valeur")
+text_labels = [ax_rt.text(i, 0, "", ha='center', va='bottom') for i in range(num_capteurs)]
+
+def update_realtime(frame):
+    with lock:
+        snapshot = list(valeurs_en_temps_reel)
+    for i, bar in enumerate(bars):
+        val = snapshot[i]
+        bar.set_height(val)
+        text_labels[i].set_text(f"{val:.1f}")
+        text_labels[i].set_y(val + 2)
+
+ani_rt = animation.FuncAnimation(fig_rt, update_realtime, interval=100)
+
+fig_freq.canvas.mpl_connect("close_event", on_close)
+fig_rt.canvas.mpl_connect("close_event", on_close)
+
+# --------------------- FENETRE 3 : 3D MANCHE ---------------------
+fig_3d = plt.figure()
+ax_3d = fig_3d.add_subplot(111, projection='3d')
+fig_3d.canvas.mpl_connect("close_event", on_close)
+
+capteurs_coords = np.array([
+    [2, -1.5, 0.5], [2, +1.5, 0.5], [8, -1.5, 0.5],
+    [8, +1.5, 0.5], [8, 0.0, 2.0], [2, 0.0, 2.0]
+])
+
+manche_length = 10
+manche_width = 3
+manche_height = 2
+
+def draw_manche(ax):
+    from itertools import product, combinations
+    r = [0, manche_length]
+    w = [-manche_width/2, manche_width/2]
+    h = [0, manche_height]
+    points = list(product(r, w, h))
+    for s, e in combinations(points, 2):
+        if sum([s[i] != e[i] for i in range(3)]) == 1:
+            ax.plot3D(*zip(s, e), color="gray", alpha=0.4)
+
+def update_3d(frame):
+    with lock:
+        forces = np.array(valeurs_en_temps_reel)
+    
+    ax_3d.clear()
+    draw_manche(ax_3d)
+    ax_3d.set_xlim(0, manche_length)
+    ax_3d.set_ylim(-manche_width/2 - 1, manche_width/2 + 1)
+    ax_3d.set_zlim(0, manche_height + 1)
+    ax_3d.set_title("Manche + Centre des forces")
+    ax_3d.set_xlabel("X (longueur)")
+    ax_3d.set_ylabel("Y (largeur)")
+    ax_3d.set_zlabel("Z (hauteur)")
+
+    for i, (x, y, z) in enumerate(capteurs_coords):
+        ax_3d.scatter(x, y, z, color='blue')
+        ax_3d.text(x, y, z + 0.2, f"{i+1}", color='blue')
+    if np.sum(forces) > 0:
+        center_force = np.average(capteurs_coords, axis=0, weights=forces)
+        ax_3d.scatter(*center_force, color='red', s=100, label='Centre des forces')
+        ax_3d.legend()
+
+ani_3d = animation.FuncAnimation(fig_3d, update_3d, interval=200)
+
+# --------------------- FENETRE 4 : FLANCS ---------------------
+fig_color, ax_color = plt.subplots()
+fig_color.canvas.mpl_connect("close_event", on_close)
+fig_color.subplots_adjust(bottom=0.2)
+
+rects = {}
+positions = [0.2, 0.5, 0.8]
+capteurs_zones = [(0, 2), (5, 4), (1, 3)]
+
+green_red = LinearSegmentedColormap.from_list("green_red", ["blue", "red"])
+acquisition_en_cours = True
+start_time = time.time()
+donnees_10s = [[] for _ in range(num_capteurs)]
+
+for i, x in enumerate(positions):
+    rects[f"{i}_top"] = ax_color.add_patch(Rectangle((x - 0.05, 0.6), 0.1, 0.3, color='gray'))
+    rects[f"{i}_bot"] = ax_color.add_patch(Rectangle((x - 0.05, 0.2), 0.1, 0.3, color='gray'))
+
+ax_color.set_xlim(0, 1)
+ax_color.set_ylim(0, 1)
+ax_color.axis('off')
+ax_color.set_title("Zones de pression sur le manche (10s)")
+
+ax_button = plt.axes([0.4, 0.05, 0.2, 0.075])
+button = widgets.Button(ax_button, 'Réinitialiser')
+
+def reset_acquisition(event):
+    global acquisition_en_cours, start_time, donnees_10s
+    acquisition_en_cours = True
+    start_time = time.time()
+    donnees_10s = [[] for _ in range(num_capteurs)]
+    for r in rects.values():
+        r.set_color("gray")
+
+button.on_clicked(reset_acquisition)
+
+def update_color(frame):
+    global acquisition_en_cours
+    if not acquisition_en_cours:
+        return
+
+    now = time.time()
+    with lock:
+        for i in range(num_capteurs):
+            donnees_10s[i].append(valeurs_en_temps_reel[i])
+
+    if now - start_time >= 10:
+        acquisition_en_cours = False
+        for idx, (top_id, bot_id) in enumerate(capteurs_zones):
+            moyenne_top = np.mean(donnees_10s[top_id])
+            moyenne_bot = np.mean(donnees_10s[bot_id])
+            rects[f"{idx}_top"].set_color(green_red(moyenne_top / 100))
+            rects[f"{idx}_bot"].set_color(green_red(moyenne_bot / 100))
+
+ani_color = animation.FuncAnimation(fig_color, update_color, interval=200)
+
+# --------------------- AFFICHAGE FINAL ---------------------
+plt.show()
+
+
 #%%----------------Voit la trame de la carte arduino---------------------------
 import serial
 import threading
@@ -545,7 +782,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 # === Configuration série ===
-PORT = 'COM3'  # Remplace par ton port réel, ex: 'COM5'
+PORT = 'COM4'  # Remplace par ton port réel, ex: 'COM5'
 BAUDRATE = 9600
 
 # === Données capteurs ===
