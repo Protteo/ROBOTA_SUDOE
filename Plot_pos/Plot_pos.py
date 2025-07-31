@@ -175,6 +175,59 @@ fig.canvas.mpl_connect('close_event', on_close)
 ani = animation.FuncAnimation(fig, update, interval=50)
 plt.show()
 
+#%%------------------Manche souple avec vscode--------------------------------
+import serial
+import matplotlib.pyplot as plt
+import re
+import time
+import matplotlib
+matplotlib.use('tkagg')  # ou 'qt5agg' si tu as PyQt5 installé
+
+
+plt.ion()  # Mode interactif ON
+
+# Paramètres série
+SERIAL_PORT = 'COM4'
+BAUDRATE = 115200
+ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=1)
+
+# Graphique initial
+fig, ax = plt.subplots()
+bar_labels = [f'R{i+1}' for i in range(6)]
+bar_values = [0] * 6
+bars = ax.bar(bar_labels, bar_values, color='skyblue')
+value_texts = [ax.text(i, 0, '', ha='center', va='bottom') for i in range(6)]
+
+ax.set_ylim(0, 2000)
+ax.set_title("Capteurs R1 à R6")
+ax.set_ylabel("Valeur brute")
+
+fig.show()
+
+try:
+    while plt.fignum_exists(fig.number):  # Boucle jusqu'à fermeture manuelle
+        line = ser.readline().decode('utf-8').strip()
+        if line:
+            matches = re.findall(r'R(\d):(\d+)', line)
+            values = [0] * 6
+            for sensor, val in matches:
+                index = int(sensor) - 1
+                if 0 <= index < 6:
+                    values[index] = int(val)
+            for i, val in enumerate(values):
+                bars[i].set_height(val)
+                value_texts[i].set_text(str(val))
+                value_texts[i].set_y(val + 20)
+            fig.canvas.draw()
+            fig.canvas.flush_events()
+        time.sleep(0.05)
+except Exception as e:
+    print("Erreur :", e)
+finally:
+    print("Fermeture manuelle. Libération du port série.")
+    ser.close()
+    plt.close()
+
 
 #%%--------------------Ports séries avec descritpions--------------------------
 import serial.tools.list_ports
