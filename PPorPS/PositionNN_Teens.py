@@ -26,7 +26,7 @@ CLASSES = [
     "courbe_droite_poignard"
 ]
 
-CSV_FILENAME = os.path.join(DOSSIER_TRAVAIL, "donnees_mouvements_UR5.csv")
+CSV_FILENAME = os.path.join(DOSSIER_TRAVAIL, "donnees_mouvements_UR5_statique.csv")
 SCALER_FILENAME = os.path.join(DOSSIER_TRAVAIL, "scaler.pkl")
 MODEL_FILENAME = os.path.join(DOSSIER_TRAVAIL, "modele.pkl")
 

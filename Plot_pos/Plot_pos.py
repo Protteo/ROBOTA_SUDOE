@@ -541,7 +541,7 @@ plt.show()
 
 #%%----------------Histogrammesx4 vscode---------------------------------------
 import matplotlib
-matplotlib.use('tkagg')  # Important : utiliser le backend tk pour VSCode
+matplotlib.use('tkagg')  # 6Important : utiliser le backend tk pour VSCode
 
 import serial
 import matplotlib.pyplot as plt
@@ -775,7 +775,7 @@ ani_color = animation.FuncAnimation(fig_color, update_color, interval=200)
 plt.show()
 
 
-#%%----------------Voit la trame de la carte arduino---------------------------
+66#%%----------------Voit la trame de la carte arduino---------------------------
 import serial
 import threading
 import matplotlib.pyplot as plt
