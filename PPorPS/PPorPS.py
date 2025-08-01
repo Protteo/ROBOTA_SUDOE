@@ -86,7 +86,7 @@ def entrainer_modele(donnees, labels):
 
     X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
 
-    model = MLPClassifier(hidden_layer_sizes=(16,16), activation='relu', max_iter=1000)
+    model = MLPClassifier(hidden_layer_sizes=(16,16), activation='sigmoide', max_iter=1000)
     print("Entraînement du modèle...")
     model.fit(X_train, y_train)
 
@@ -419,7 +419,7 @@ def entrainer_modele():
 
     X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)
 
-    model = MLPClassifier(hidden_layer_sizes=(12, 12), max_iter=300)
+    model = MLPClassifier(hidden_layer_sizes=(48, 24, 12), max_iter=1500) #Nombre de couches cachées et le nombre max d'itérations utilisées pour l'entrainement du modèle.
     model.fit(X_train, y_train)
     print(f"Précision sur test : {model.score(X_test, y_test)*100:.2f}%")
     joblib.dump(model, MODEL_FILENAME)
@@ -490,3 +490,5 @@ def compter_classes(nom_fichier):
 
 if __name__ == "__main__":
     compter_classes(NOM_FICHIER_CSV)
+
+# %%
