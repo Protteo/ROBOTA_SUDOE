@@ -31,16 +31,17 @@ SCALER_FILENAME = os.path.join(DOSSIER_TRAVAIL, "scaler.pkl")
 MODEL_FILENAME = os.path.join(DOSSIER_TRAVAIL, "modele.pkl")
 
 # === Fonctions ===
-def lire_donnees_serie(ser):
+def lire_donnees_serie(ser, num_capteurs):
+    """Lit une ligne du port série et extrait les valeurs des capteurs."""
     try:
-        ligne = ser.readline().decode('utf-8').strip()
-        valeurs = ligne.split(',')
-        if len(valeurs) == N_CAPTEURS:
-            return [int(val) for val in valeurs]
-        else:
+        line = ser.readline().decode(errors='ignore').strip()
+        valeurs = list(map(float, line.split(",")))
+        if len(valeurs) != num_capteurs:
             return None
+        return valeurs
     except Exception:
         return None
+
 
 def initialiser_csv():
     if os.path.exists(CSV_FILENAME):
@@ -72,7 +73,7 @@ def acquisition_par_classe():
         start = time.time()
         while time.time() - start < duree:
             if ser.in_waiting:
-                donnees = lire_donnees_serie(ser)
+                donnees = lire_donnees_serie(ser, N_CAPTEURS)
                 if donnees:
                     buffer.append(donnees)
                     if len(buffer) >= NB_VALEURS_GLISSANTES:
@@ -132,7 +133,7 @@ def prediction_temps_reel():
     try:
         while True:
             if ser.in_waiting:
-                donnees = lire_donnees_serie(ser)
+                donnees = lire_donnees_serie(ser, N_CAPTEURS)
                 if donnees:
                     buffer.append(donnees)
                     if len(buffer) >= NB_VALEURS_GLISSANTES:
