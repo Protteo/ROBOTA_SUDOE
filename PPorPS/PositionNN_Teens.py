@@ -7,14 +7,13 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import joblib
-import re
 
 # === Paramètres à personnaliser ===
 DOSSIER_TRAVAIL = r"C:\Users\matte\OneDrive\Documents\Scolaire\Sigma\2A\Stage\ROBOTA SUDOE\Tactile_sensor\Capteurs_tactiles\PPorPS"
-PORT_SERIE = 'COM4'
-BAUDRATE = 115200
+PORT_SERIE = 'COM3'
+BAUDRATE = 9600
 N_CAPTEURS = 6
-NB_VALEURS_GLISSANTES = 5  # Valeurs par capteur (fenêtre)
+NB_VALEURS_GLISSANTES = 5  # Taille fenêtre glissante
 HIDDEN_LAYER = (30, 30)
 MAX_ITER = 2500
 CLASSES = [
@@ -27,7 +26,7 @@ CLASSES = [
     "courbe_droite_poignard"
 ]
 
-CSV_FILENAME = os.path.join(DOSSIER_TRAVAIL, "donnees_mouvements.csv")
+CSV_FILENAME = os.path.join(DOSSIER_TRAVAIL, "donnees_mouvements_UR5.csv")
 SCALER_FILENAME = os.path.join(DOSSIER_TRAVAIL, "scaler.pkl")
 MODEL_FILENAME = os.path.join(DOSSIER_TRAVAIL, "modele.pkl")
 
@@ -35,13 +34,11 @@ MODEL_FILENAME = os.path.join(DOSSIER_TRAVAIL, "modele.pkl")
 def lire_donnees_serie(ser):
     try:
         ligne = ser.readline().decode('utf-8').strip()
-        matches = re.findall(r'R(\d):(\d+)', ligne)
-        values = [0] * N_CAPTEURS
-        for sensor, val in matches:
-            idx = int(sensor) - 1
-            if 0 <= idx < N_CAPTEURS:
-                values[idx] = int(val)
-        return values
+        valeurs = ligne.split(',')
+        if len(valeurs) == N_CAPTEURS:
+            return [int(val) for val in valeurs]
+        else:
+            return None
     except Exception:
         return None
 
@@ -79,9 +76,8 @@ def acquisition_par_classe():
                 if donnees:
                     buffer.append(donnees)
                     if len(buffer) >= NB_VALEURS_GLISSANTES:
-                        # Prendre les dernières N valeurs
                         fenetre = buffer[-NB_VALEURS_GLISSANTES:]
-                        ligne = sum(fenetre, [])  # Aplatir
+                        ligne = sum(fenetre, [])
                         ligne.append(classe)
                         data_total.append(ligne)
                         print(f"{classe} : {ligne[:-1]}")
@@ -99,7 +95,7 @@ def acquisition_par_classe():
 
     print(f"✅ Données enregistrées dans {CSV_FILENAME}")
 
-def entrainer_modele(HIDDEN_LAYER, MAX_ITER): #Permet de régler les paramètres du réseau de neurones
+def entrainer_modele(HIDDEN_LAYER, MAX_ITER):
     if not os.path.exists(CSV_FILENAME):
         print("Fichier CSV non trouvé.")
         return
@@ -162,4 +158,3 @@ if __name__ == "__main__":
         prediction_temps_reel()
     else:
         print("Mode inconnu.")
-
