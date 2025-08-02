@@ -3,5 +3,8 @@
   
 **PPorPS** : Python code to create a csv file with the sensors' values in order to train a neural network to determine if we are holding the handle in a standard mode or in a reverse mode.  
   
-**Tactie_sensor** : Arduino code for Teensy 4.1 to get the sensors' values as : value1,value2,value3,value4,value5,value6.
+**Tactie_sensor** : Arduino code for Teensy 4.1 to get the sensors' values as : value1,value2,value3,value4,value5,value6.  
+
+**If you have any question** :  
+matteo.proverbio@sigma-clermont.fr
 
