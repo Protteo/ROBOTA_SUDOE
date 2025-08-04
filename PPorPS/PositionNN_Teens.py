@@ -18,15 +18,17 @@ HIDDEN_LAYER = (30, 30)
 MAX_ITER = 2500
 CLASSES = [
     "neutre",
-    "rectiligne_std",
-    "courbe_droite_std",
-    "courbe_gauche_std",
-    "rectiligne_poignard",
-    "courbe_gauche_poignard",
-    "courbe_droite_poignard"
+    # "rectiligne_std",
+    # "courbe_droite_std",
+    # "courbe_gauche_std",
+    # "rectiligne_poignard",
+    # "courbe_gauche_poignard",
+    # "courbe_droite_poignard"
+    "Standard",
+    "Poignard"
 ]
 
-CSV_FILENAME = os.path.join(DOSSIER_TRAVAIL, "donnees_mouvements_UR5_statique.csv")
+CSV_FILENAME = os.path.join(DOSSIER_TRAVAIL, "Devine_double_position.csv")
 SCALER_FILENAME = os.path.join(DOSSIER_TRAVAIL, "scaler.pkl")
 MODEL_FILENAME = os.path.join(DOSSIER_TRAVAIL, "modele.pkl")
 
