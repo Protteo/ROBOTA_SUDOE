@@ -11,7 +11,7 @@ import re
 
 # === Paramètres à personnaliser ===
 DOSSIER_TRAVAIL = r"C:\Users\matte\OneDrive\Documents\Scolaire\Sigma\2A\Stage\ROBOTA SUDOE\Tactile_sensor\Capteurs_tactiles\PPorPS"
-PORT_SERIE = 'COM1'
+PORT_SERIE = 'COM4'
 BAUDRATE = 115200
 N_CAPTEURS = 6
 NB_VALEURS_GLISSANTES = 1  # Valeurs par capteur (fenêtre)

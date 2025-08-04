@@ -10,8 +10,8 @@ import joblib
 
 # === Paramètres à personnaliser ===
 DOSSIER_TRAVAIL = r"C:\Users\matte\OneDrive\Documents\Scolaire\Sigma\2A\Stage\ROBOTA SUDOE\Tactile_sensor\Capteurs_tactiles\PPorPS"
-PORT_SERIE = 'COM4'
-BAUDRATE = 115200
+PORT_SERIE = 'COM3'
+BAUDRATE = 9600
 N_CAPTEURS = 6
 NB_VALEURS_GLISSANTES = 1  # Taille fenêtre glissante
 HIDDEN_LAYER = (4) #(n_input + n_output ) / 2 
