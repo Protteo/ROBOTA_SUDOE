@@ -12,9 +12,13 @@ unsigned long loopCount = 0;
 
 void setup() {
   Serial.begin(9600);
+<<<<<<< HEAD
   analogReadResolution(12);
   lastSendTime = micros();
   lastFreqDisplayTime = millis();
+=======
+  analogReadResolution(12);  // Mettre à 12 si ton Teensy le permet : analogReadResolution(12);
+>>>>>>> Ajustment
 }
 
 void loop() {
