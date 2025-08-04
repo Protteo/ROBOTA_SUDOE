@@ -10,12 +10,13 @@ import joblib
 
 # === Paramètres à personnaliser ===
 DOSSIER_TRAVAIL = r"C:\Users\matte\OneDrive\Documents\Scolaire\Sigma\2A\Stage\ROBOTA SUDOE\Tactile_sensor\Capteurs_tactiles\PPorPS"
-PORT_SERIE = 'COM3'
-BAUDRATE = 9600
+PORT_SERIE = 'COM4'
+BAUDRATE = 115200
 N_CAPTEURS = 6
-NB_VALEURS_GLISSANTES = 5  # Taille fenêtre glissante
-HIDDEN_LAYER = (30, 30)
+NB_VALEURS_GLISSANTES = 1  # Taille fenêtre glissante
+HIDDEN_LAYER = (4) #(n_input + n_output ) / 2 
 MAX_ITER = 2500
+ALPHA = 0.0001 #Régularisation L2
 CLASSES = [
     "neutre",
     # "rectiligne_std",
@@ -28,7 +29,7 @@ CLASSES = [
     "Poignard"
 ]
 
-CSV_FILENAME = os.path.join(DOSSIER_TRAVAIL, "Devine_double_position.csv")
+CSV_FILENAME = os.path.join(DOSSIER_TRAVAIL, "donnees_manche_souple.csv")
 SCALER_FILENAME = os.path.join(DOSSIER_TRAVAIL, "scaler.pkl")
 MODEL_FILENAME = os.path.join(DOSSIER_TRAVAIL, "modele.pkl")
 
@@ -113,7 +114,7 @@ def entrainer_modele(HIDDEN_LAYER, MAX_ITER):
 
     X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)
 
-    model = MLPClassifier(hidden_layer_sizes=HIDDEN_LAYER, max_iter=MAX_ITER, solver='adam', activation='logistic', verbose=True)
+    model = MLPClassifier(hidden_layer_sizes=HIDDEN_LAYER, max_iter=MAX_ITER, solver='adam', activation='logistic', alpha=ALPHA, verbose=True)
     model.fit(X_train, y_train)
 
     print(f"🎯 Précision : {model.score(X_test, y_test)*100:.2f}%")

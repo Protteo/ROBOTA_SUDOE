@@ -14,20 +14,24 @@ DOSSIER_TRAVAIL = r"C:\Users\matte\OneDrive\Documents\Scolaire\Sigma\2A\Stage\RO
 PORT_SERIE = 'COM4'
 BAUDRATE = 115200
 N_CAPTEURS = 6
-NB_VALEURS_GLISSANTES = 5  # Valeurs par capteur (fenêtre)
-HIDDEN_LAYER = (30, 30)
+NB_VALEURS_GLISSANTES = 1  # Valeurs par capteur (fenêtre)
+HIDDEN_LAYER = (4)
+ACTIVATION = "relu" # "logistic" ou "tanh" ou "identity" ou "relu"
+ALPHA = 0.0001 #Régularisation L2
 MAX_ITER = 2500
 CLASSES = [
-    "neutre",
-    "rectiligne_std",
-    "courbe_droite_std",
-    "courbe_gauche_std",
-    "rectiligne_poignard",
-    "courbe_gauche_poignard",
-    "courbe_droite_poignard"
+    # "neutre",
+    # "rectiligne_std",
+    # "courbe_droite_std",
+    # "courbe_gauche_std",
+    # "rectiligne_poignard",
+    # "courbe_gauche_poignard",
+    # "courbe_droite_poignard"
+    "Standard",
+    "Poignard"
 ]
 
-CSV_FILENAME = os.path.join(DOSSIER_TRAVAIL, "donnees_mouvements.csv")
+CSV_FILENAME = os.path.join(DOSSIER_TRAVAIL, "donnees_manche_souple.csv")
 SCALER_FILENAME = os.path.join(DOSSIER_TRAVAIL, "scaler.pkl")
 MODEL_FILENAME = os.path.join(DOSSIER_TRAVAIL, "modele.pkl")
 
@@ -114,7 +118,7 @@ def entrainer_modele(HIDDEN_LAYER, MAX_ITER): #Permet de régler les paramètres
 
     X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)
 
-    model = MLPClassifier(hidden_layer_sizes=HIDDEN_LAYER, max_iter=MAX_ITER, solver='adam', activation='logistic', verbose=True)
+    model = MLPClassifier(hidden_layer_sizes=HIDDEN_LAYER, max_iter=MAX_ITER, solver='adam', activation='logistic', alpha=ALPHA, verbose=True)
     model.fit(X_train, y_train)
 
     print(f"🎯 Précision : {model.score(X_test, y_test)*100:.2f}%")
