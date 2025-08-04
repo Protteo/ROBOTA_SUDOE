@@ -3,7 +3,7 @@ const float VREF = 3.3;
 const int resolution = 4096;
 
 // Réglage de la fréquence cible (en Hz)
-const unsigned long freqCible = 100;  // <-- MODIFIE ICI la fréquence que tu veux
+const unsigned long freqCible = 100; // <-- MODIFIE ICI la fréquence que tu veux
 const unsigned long periodeCible = 1000000 / freqCible; // µs
 
 unsigned long lastSendTime = 0;
