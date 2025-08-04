@@ -12,7 +12,7 @@ const int resolution = 4096; // Résolution ADC (10 bits sur Teensy 3.2 ; 12 bit
 
 void setup() {
   Serial.begin(9600);
-  analogReadResolution(12); // Mettre à 12 si ton Teensy le permet : analogReadResolution(12);
+  analogReadResolution(12);  // Mettre à 12 si ton Teensy le permet : analogReadResolution(12);
 }
 
 void loop() {
