@@ -10,7 +10,7 @@ import joblib
 import re
 
 # === Paramètres à personnaliser ===
-DOSSIER_TRAVAIL = r"C:\Users\matte\OneDrive\Documents\Scolaire\Sigma\2A\Stage\ROBOTA SUDOE\Tactile_sensor\Capteurs_tactiles\PPorPS"
+DOSSIER_TRAVAIL = r"C:\Users\matte\OneDrive\Documents\Scolaire\Sigma\2A\Stage\ROBOTA SUDOE\Tactile_sensor\ROBOTA_SUDOE\PPorPS"
 PORT_SERIE = 'COM4'
 BAUDRATE = 115200
 N_CAPTEURS = 6
