@@ -92,3 +92,11 @@ anim.save(video_path, writer=writer)
 print("Enregistrement terminé.")
 
 plt.show()
+
+#%%
+import shutil
+
+ffmpeg_path = shutil.which("ffmpeg")
+print("FFmpeg trouvé ici :", ffmpeg_path)
+
+
