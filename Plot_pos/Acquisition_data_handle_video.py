@@ -6,8 +6,8 @@ from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
 
 # -------- CONFIGURATION --------
-csv_path = "C:/Users/matte/OneDrive/Documents/Scolaire/Sigma//2A/Stage/ROBOTA SUDOE/Tactile_sensor/ROBOTA_SUDOE/Plot_pos/wrench_camera_data/wrench_camera_data/linear_y_hp1/wrench_data_2025-08-04_17-47-13"
-video_path = "C:/Users/matte/OneDrive/Documents/Scolaire/Sigma//2A/Stage/ROBOTA SUDOE/Tactile_sensor/ROBOTA_SUDOE/Plot_pos/wrench_camera_data/wrench_camera_data/linear_y_hp1/animation2_linear_y_HP1.mp4"
+csv_path = "C:/Users/matte/OneDrive/Documents/Scolaire/Sigma//2A/Stage/ROBOTA SUDOE/Tactile_sensor/ROBOTA_SUDOE/Plot_pos/wrench_camera_data/wrench_camera_data/linear_y_hp1/wrench_data_2025-08-04_17-49-39.csv"
+video_path = "C:/Users/matte/OneDrive/Documents/Scolaire/Sigma//2A/Stage/ROBOTA SUDOE/Tactile_sensor/ROBOTA_SUDOE/Plot_pos/wrench_camera_data/wrench_camera_data/linear_y_hp1/animation4_linear_y_HP1.mp4"
 duree_sec = 30  # durée de la vidéo en secondes
 nb_frames = 500  # nombre total d'images dans la vidéo
 fps = nb_frames / duree_sec  # fréquence d'images pour avoir pile 30s → 16.67 fps
