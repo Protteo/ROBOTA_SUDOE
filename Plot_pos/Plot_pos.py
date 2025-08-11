@@ -801,7 +801,7 @@ def lecture_serie():
     while True:
         try:
             line = ser.readline().decode().strip()
-            print("Trame reçue :", line)  # Ajoute ceci
+            print("Trame reçue :", line)  
             ...
         except Exception as e:
             print("Erreur :", e)

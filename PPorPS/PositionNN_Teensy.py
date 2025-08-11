@@ -8,6 +8,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import joblib
 
+"""This code works with the Teensy 4.1 cardboard.
+It creates csv files in which are stored the data of several acquisitions made by the user about the way of holding the knife.
+First the user has to hold the knife through several positions, then he has to train the neural network and finally, he can start to predict new positions.
+You have to launch this code three times to do those three steps."""
+
 # === Paramètres à personnaliser ===
 DOSSIER_TRAVAIL =  r"C:\Users\matte\OneDrive\Documents\Scolaire\Sigma\2A\Stage\ROBOTA SUDOE\Tactile_sensor\ROBOTA_SUDOE\PPorPS"
 PORT_SERIE = 'COM3'
@@ -18,18 +23,18 @@ HIDDEN_LAYER = (4) #(n_input + n_output ) / 2
 MAX_ITER = 2500
 ALPHA = 0.0001 #Régularisation L2
 CLASSES = [
-    "neutre",
-    # "rectiligne_std",
-    # "courbe_droite_std",
-    # "courbe_gauche_std",
-    # "rectiligne_poignard",
-    # "courbe_gauche_poignard",
-    # "courbe_droite_poignard"
+    "neutral",
+    # "straight_std",
+    # "curve_right_std",
+    # "curve_left_std",
+    # "straight_reverse",
+    # "ccurve_left_reverse",
+    # "curve_right_reverse"
     "Standard",
-    "Poignard"
+    "Reverse"
 ]
 
-CSV_FILENAME = os.path.join(DOSSIER_TRAVAIL, "donnees_manche_souple.csv")
+CSV_FILENAME = os.path.join(DOSSIER_TRAVAIL, "donnees_manche_souple.csv") #Name of the csv file
 SCALER_FILENAME = os.path.join(DOSSIER_TRAVAIL, "scaler.pkl")
 MODEL_FILENAME = os.path.join(DOSSIER_TRAVAIL, "modele.pkl")
 
@@ -48,26 +53,26 @@ def lire_donnees_serie(ser, num_capteurs):
 
 def initialiser_csv():
     if os.path.exists(CSV_FILENAME):
-        choix = input("Réinitialiser le fichier CSV ? (o/n) : ").lower()
-        if choix == 'o':
+        choix = input("Reset the csv file ? (y/n) : ").lower()
+        if choix == 'y':
             os.remove(CSV_FILENAME)
-            print("Fichier CSV réinitialisé.")
+            print("FCSV file reset")
         else:
-            print("Les nouvelles données seront ajoutées.")
+            print("New data will be added")
     else:
-        print("Le fichier sera créé.")
+        print("LThe file will be set")
 
 def acquisition_par_classe():
     ser = serial.Serial(PORT_SERIE, BAUDRATE, timeout=1)
-    print("Connexion série établie.")
+    print("Link with serial port : ok")
     time.sleep(2)
 
     data_total = []
 
     for classe in CLASSES:
-        input(f"\nPréparez la classe '{classe}'. Appuyez sur Entrée pour démarrer l'acquisition.")
+        input(f"\nPrépare the classe '{classe}'. Press Enter to start getting data")
         try:
-            duree = float(input("Durée d'acquisition (sec) : "))
+            duree = float(input("Getting time (sec) : "))
         except ValueError:
             duree = 60
             print("Durée par défaut : 60s.")
@@ -86,7 +91,7 @@ def acquisition_par_classe():
                         data_total.append(ligne)
                         print(f"{classe} : {ligne[:-1]}")
 
-        print(f"Acquisition terminée pour {classe}.")
+        print(f"Getting over for the class {classe}.")
 
     ser.close()
     colonnes = [f"capteur_{i+1}_t{j+1}" for j in range(NB_VALEURS_GLISSANTES) for i in range(N_CAPTEURS)] + ["classe"]
@@ -101,7 +106,7 @@ def acquisition_par_classe():
 
 def entrainer_modele(HIDDEN_LAYER, MAX_ITER):
     if not os.path.exists(CSV_FILENAME):
-        print("Fichier CSV non trouvé.")
+        print("CSV file not found.")
         return
 
     df = pd.read_csv(CSV_FILENAME)
@@ -117,19 +122,19 @@ def entrainer_modele(HIDDEN_LAYER, MAX_ITER):
     model = MLPClassifier(hidden_layer_sizes=HIDDEN_LAYER, max_iter=MAX_ITER, solver='adam', activation='logistic', alpha=ALPHA, verbose=True)
     model.fit(X_train, y_train)
 
-    print(f"🎯 Précision : {model.score(X_test, y_test)*100:.2f}%")
+    print(f"🎯 Accuracy : {model.score(X_test, y_test)*100:.2f}%")
     joblib.dump(model, MODEL_FILENAME)
-    print("🧠 Modèle sauvegardé.")
+    print("🧠 Model saved")
 
 def prediction_temps_reel():
     if not os.path.exists(MODEL_FILENAME) or not os.path.exists(SCALER_FILENAME):
-        print("Modèle non trouvé.")
+        print("Model not found")
         return
 
     model = joblib.load(MODEL_FILENAME)
     scaler = joblib.load(SCALER_FILENAME)
     ser = serial.Serial(PORT_SERIE, BAUDRATE, timeout=1)
-    print("🔮 Prédictions en cours. Ctrl+C pour arrêter.")
+    print("🔮 Prediction ongoing. Ctrl+C to stop.")
 
     buffer = []
 
@@ -147,18 +152,18 @@ def prediction_temps_reel():
                         proba = np.max(model.predict_proba(X_input)) * 100
                         print(f"Prédiction : {pred} ({proba:.1f}%)")
     except KeyboardInterrupt:
-        print("⛔ Arrêt.")
+        print("⛔ Stop.")
         ser.close()
 
 # === Menu principal ===
 if __name__ == "__main__":
-    mode = input("Mode : (a)cquisition, (e)ntrainement, (p)rédiction ? ").lower()
+    mode = input("Mode : (a)cquisition, (t)raining, (p)rédiction ? ").lower()
     if mode == 'a':
         initialiser_csv()
         acquisition_par_classe()
-    elif mode == 'e':
+    elif mode == 't':
         entrainer_modele(HIDDEN_LAYER, MAX_ITER)
     elif mode == 'p':
         prediction_temps_reel()
     else:
-        print("Mode inconnu.")
+        print("Unknown mode")

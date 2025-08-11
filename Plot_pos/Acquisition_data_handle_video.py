@@ -5,6 +5,9 @@ from matplotlib.patches import Rectangle
 from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
 
+"""This code gets the data from a csv file after the movement, and then it creates a 30s video of a color mapping about the 6 sensors on the handle."""
+
+
 # -------- CONFIGURATION --------
 csv_path = "C:/Users/matte/OneDrive/Documents/Scolaire/Sigma//2A/Stage/ROBOTA SUDOE/Tactile_sensor/ROBOTA_SUDOE/Plot_pos/wrench_camera_data/wrench_camera_data/slow_linear_y_hp1/wrench_data_2025-08-05_11-27-48.csv"
 video_path = "C:/Users/matte/OneDrive/Documents/Scolaire/Sigma//2A/Stage/ROBOTA SUDOE/Tactile_sensor/ROBOTA_SUDOE/Plot_pos/wrench_camera_data/wrench_camera_data/slow_linear_y_hp1/animation6_slow_linear_y_HP1.mp4"
@@ -27,7 +30,7 @@ fig, ax = plt.subplots(figsize=(6, 4))
 ax.set_xlim(0, 1)
 ax.set_ylim(0, 1)
 ax.axis('off')
-ax.set_title("Zones de pression sur le manche")
+ax.set_title("Pressure zone on the handle.")
 
 # Positions rectangles : gauche, haut, droite
 positions = [0.2, 0.5, 0.8]
@@ -79,6 +82,6 @@ anim = animation.FuncAnimation(fig, update, frames=nb_frames, blit=True)
 
 # -------- ENREGISTREMENT --------
 writer = animation.FFMpegWriter(fps=fps, metadata=dict(artist='ChatGPT'), bitrate=1800)
-print(f"Démarrage de l'enregistrement vidéo vers : {video_path}")
+print(f"Starting the video saving into : {video_path}")
 anim.save(video_path, writer=writer, dpi=200)
-print("Enregistrement terminé.")
+print("Saving over")
