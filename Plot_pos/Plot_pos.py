@@ -1,4 +1,4 @@
-#%%--------------------Importer les library------------------------------------
+#%%--------------------Import the libraries------------------------------------
 import serial
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -10,10 +10,10 @@ import time
 # matplotlib.use('Qt5Agg')  # ou 'TkAgg' selon ton système
 
 
-#%%--------------------Ouvre le port série-------------------------------------
+#%%--------------------Open the serial port-------------------------------------
 ser = serial.Serial("COM3",9600)
 
-#%%--------------------Preparer la figure--------------------------------------
+#%%--------------------Prepare the plot--------------------------------------
 fig, ax = plt.subplots()
 point, =ax.plot([], [], 'ro')
 ax.set_xlim(-100,100)
@@ -43,7 +43,7 @@ def update(frame):
 ani = animation.FuncAnimation(fig, update, blit=True, interval=50)
 plt.show()
 
-#%%-----------------Histogramme------------------------------------------------
+#%%-----------------Histogram------------------------------------------------
 num_capteurs = 2  # Change selon ton nombre de capteurs
 labels = [f"Capteur {i+1}" for i in range(num_capteurs)]
 
@@ -54,9 +54,9 @@ labels = [f"Capteur {i+1}" for i in range(num_capteurs)]
 histories = [[] for _ in range(num_capteurs)]
 
 fig, ax = plt.subplots()
-plt.subplots_adjust(bottom=0.2)  # Laisse de la place pour le bouton
+plt.subplots_adjust(bottom=0.2)  # Let the place for the button
 bars = ax.bar(labels, [0]*num_capteurs, color='skyblue')
-ax.set_ylim(0, 100)  # Plage max pour un capteur analogique 10 bits (Arduino)
+ax.set_ylim(0, 100)  # Max range for an analog sensor (Arduino)
 text_labels = []
 
 
@@ -101,7 +101,7 @@ plt.grid(True, axis='y')
 plt.tight_layout()
 plt.show()
 
-# ------------------- Fonction de reset
+# ------------------- Reset function
 def reset(event):
     for i in range(num_capteurs):
         histories[i].clear()
@@ -116,20 +116,23 @@ def reset(event):
 # reset_button = Button(reset_ax, 'Reset')
 # reset_button.on_clicked(reset)
 
-#%%-------------------------Manche matière souple---------------
+#%%-------------------------Flexible handle---------------
+
+"""This code showes in real time a histogram of the 6 sensors' values for the flexible handle."""
+
 import serial
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import re
 
-# Paramètres de connexion série
+# Serial link parameters
 SERIAL_PORT = 'COM4'  # À adapter
 BAUDRATE = 115200
 
-# Initialisation de la liaison série
+# Setting of the serial port
 ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=1)
 
-# Initialisation du graphique
+# graphic settings
 fig, ax = plt.subplots()
 bar_labels = [f'R{i+1}' for i in range(6)]  # 6 capteurs
 bar_values = [0] * 6
@@ -175,7 +178,9 @@ fig.canvas.mpl_connect('close_event', on_close)
 ani = animation.FuncAnimation(fig, update, interval=50)
 plt.show()
 
-#%%------------------Manche souple avec vscode--------------------------------
+#%%------------------Flexible handle vscode--------------------------------
+
+"""This code does the exact same things than the one above, adapted for vscode because at first, I used Spyder instead of vscode."""
 import serial
 import matplotlib.pyplot as plt
 import re
@@ -186,7 +191,7 @@ matplotlib.use('tkagg')  # ou 'qt5agg' si tu as PyQt5 installé
 
 plt.ion()  # Mode interactif ON
 
-# Paramètres série
+# Serial settings
 SERIAL_PORT = 'COM4'
 BAUDRATE = 115200
 ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=1)
@@ -229,23 +234,23 @@ finally:
     plt.close()
 
 
-#%%--------------------Ports séries avec descritpions--------------------------
+#%%--------------------Serial ports with descriptions--------------------------
 import serial.tools.list_ports
 import psutil
 import socket
 
 def lister_ports_usb():
     """
-    Cette fonction recherche et affiche la liste des ports COM/USB actifs.
+    This function searches and prints the active serial ports/USB
     """
     ports = serial.tools.list_ports.comports()
     
-    print("Recherche des ports USB utilisés...")
+    print("Searching for used serial port...")
     
     if not ports:
-        print("Aucun port USB actif n'a été trouvé.")
+        print("There is no active serial ports.")
     else:
-        print(f"{len(ports)} port(s) trouvé(s) :")
+        print(f"{len(ports)} Ports found :")
         for port in sorted(ports):
             # Affiche le nom du port (ex: COM3), sa description et son identifiant matériel
             print(f"  - Port: {port.device}")
@@ -260,10 +265,10 @@ if __name__ == "__main__":
 
 def lister_interfaces_ip():
     """
-    Liste toutes les interfaces réseau actives avec leurs adresses IP.
+    List every active network interface with their IP adress
     """
     interfaces = psutil.net_if_addrs()
-    print("Interfaces réseau détectées :\n")
+    print("Network interface found :\n")
 
     for nom_interface, addrs in interfaces.items():
         print(f"Interface : {nom_interface}")
@@ -281,6 +286,26 @@ if __name__ == "__main__":
 
     
 #%%--------------------Acquisition avec diagramme couleurs---------------------
+"""This code plots 4 windows :
+- The first one plots 6 histograms, one for each sensor, with the frequency of the different values taken every seconds; 
+- The second one plots the real time values for the 6 sensors in a histogram;
+- The third one plots a 3D representation of the force center according to the data taken from the sensors;
+- The last one plots the color mapping of the six sensors. When it is red, its value is high. When it is blue, the value is low.
+        -----       -----       -----
+        |   |       |   |       |   |
+        | 1 |       | 6 |       | 2 |
+        |   |       |   |       |   |
+        -----       -----       -----
+
+
+        -----       -----       -----
+        |   |       |   |       |   |
+        | 3 |       | 5 |       | 4 |
+        |   |       |   |       |   |
+        -----       -----       -----
+
+"""
+
 import serial
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -540,6 +565,8 @@ plt.show()
 
 
 #%%----------------Histogrammesx4 vscode---------------------------------------
+"""This code does the exact same things than teh one above, but adapted for vscode, since I first used Spyder instead of vscode."""
+
 import matplotlib
 matplotlib.use('tkagg')  # 6Important : utiliser le backend tk pour VSCode
 
@@ -775,7 +802,9 @@ ani_color = animation.FuncAnimation(fig_color, update_color, interval=200)
 plt.show()
 
 
-66#%%----------------Voit la trame de la carte arduino---------------------------
+#%%----------------Voit la trame de la carte arduino---------------------------
+"""This code plots the data send by the electronic card to the computer. Be careful to set the good port and the good baudrate."""
+
 import serial
 import threading
 import matplotlib.pyplot as plt
@@ -825,59 +854,6 @@ plt.title("Valeurs capteurs en temps réel")
 plt.xlabel("Capteur")
 plt.ylabel("Valeur")
 plt.show()
-
-#%%--------------Trouve IP de la compute box-----------------------------------
-import subprocess
-import ipaddress
-import platform
-import re
-import time
-from tqdm import tqdm  # Assure-toi que tqdm est installé : pip install tqdm
-
-base_ip = "169.254.247.0/24"
-
-def ping_ip(ip):
-    param = "-n" if platform.system().lower() == "windows" else "-c"
-    try:
-        subprocess.run(["ping", param, "1", str(ip)],
-                       stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL)
-    except Exception as e:
-        print(f"Erreur lors du ping vers {ip} : {e}")
-
-def scanner_reseau(plage_ip):
-    print(f"⏳ Scan de la plage IP {plage_ip} via ping...\n")
-    ip_net = ipaddress.ip_network(plage_ip, strict=False)
-
-    for ip in tqdm(ip_net.hosts(), desc="Scan IP", unit="IP"):
-        ping_ip(ip)
-
-def afficher_table_arp():
-    print("\n📋 Table ARP après scan :\n")
-    try:
-        output = subprocess.check_output("arp -a", shell=True, encoding='utf-8', errors='ignore')
-    except Exception as e:
-        print(f"Erreur lors de l'accès à la table ARP : {e}")
-        return
-
-    entries = re.findall(r'(\d+\.\d+\.\d+\.\d+)\s+([a-f0-9:-]+)', output, re.I)
-    if not entries:
-        print("Aucune entrée ARP détectée.")
-    else:
-        for ip, mac in entries:
-            print(f"🟢 IP : {ip}  →  MAC : {mac}")
-
-if __name__ == "__main__":
-    scanner_reseau(base_ip)
-    print("\n⌛ Attente 2 secondes pour mise à jour de la table ARP...")
-    time.sleep(2)
-    afficher_table_arp()
-
-
-
-
-
-
 
 
 
