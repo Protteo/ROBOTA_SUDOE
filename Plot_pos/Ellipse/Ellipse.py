@@ -20,9 +20,9 @@ original_meshes = {
 # Définir les points de pivot de chaque articulation
 link_pivots = {
     'Shoulder': [0.0, 237.0, -135.0],
-    'Elbow': [0.0,875.0,0.0],
-    'Wrist 1': [0.0,1377.0,0.0],
-    'Wrist 2': [0.0,1390.0,-201.0],
+    'Elbow': [0.0, 875.0, 0.0],
+    'Wrist 1': [0.0, 1377.0, 0.0],
+    'Wrist 2': [0.0, 1390.0, -201.0],
 }
 
 # Créer un plotter
@@ -112,14 +112,20 @@ slider_params = [
     ('Wrist 2', [-180, 180], 0.0),
 ]
 
+# Calculer l'espacement pour les curseurs
+num_sliders = len(slider_params)
+spacing = 0.15  # Un espacement plus grand pour éviter le chevauchement
+start_y = 0.1
+end_y = start_y + (num_sliders - 1) * spacing
+
 # Ajout des curseurs au plotter
 for i, (name, rng, value) in enumerate(slider_params):
     plotter.add_slider_widget(
         callback=lambda value, name=name: update_callback(value, name),
         rng=rng,
         title=name,
-        pointa=(0.02, 0.02 + i * 0.05),
-        pointb=(0.32, 0.02 + i * 0.05),
+        pointa=(0.02, start_y + i * spacing),
+        pointb=(0.32, start_y + i * spacing),
         value=value,
         style='modern'
     )
