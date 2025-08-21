@@ -48,9 +48,9 @@ initial_meshes = {
 # Décalage de l'effecteur final
 end_effector_offset = np.array([0.0, 150.0, -100.0])
 
-def calculate_geometric_jacobian(transforms):
+def calculate_geometric_jacobian(transforms, tool_center):
     J = np.zeros((6, 5))
-    p_end_effector = transforms[-1][:3, 3]
+    p_end_effector = tool_center
     
     rotation_axes_local = {
         'Base': np.array([0, 1, 0]),
@@ -89,7 +89,6 @@ class RobotApp(QtWidgets.QMainWindow):
             'Base': 0.0, 'Shoulder': 0.0, 'Elbow': 0.0, 'Wrist 1': 0.0, 'Wrist 2': 0.0
         }
         
-        # Définissez ici les coordonnées du centre des outils de manipulation
         self.manipulation_center_pos = np.array([0.0, 145.0, -100.0])
         self.last_key_press_time = 0.0
 
@@ -132,24 +131,131 @@ class RobotApp(QtWidgets.QMainWindow):
         self.initial_effector_pos = None
         self.effector_marker_name = 'effector_marker'
         self.manipulation_cylinders = {}
+        self.active_tool = None
+        
+        self.trans_height = 100
+        self.trans_radius = 10
+        self.rot_height = 2
+        self.rot_radius = 100
 
         self.setup_manipulation_cylinders() 
         self.setup_robot_scene()
         
-        # L'interactivité est désactivée pour l'instant
-        # self.plotter.iren.add_observer('LeftButtonPressEvent', self.on_mouse_down)
+        self.plotter.iren.add_observer('LeftButtonPressEvent', self.on_mouse_down)
+        self.plotter.iren.add_observer('LeftButtonReleaseEvent', self.on_mouse_up)
+        self.plotter.iren.add_observer('MouseMoveEvent', self.on_mouse_move)
 
     def on_mouse_down(self, interactor, event):
-        pass
-                    
+        print("Bouton de souris enfoncé")
+        
+        click_pos = interactor.GetEventPosition()
+        
+        picker = vtk.vtkPropPicker()
+        picker.Pick(click_pos[0], click_pos[1], 0, self.plotter.renderer)
+        picked_vtk_actor = picker.GetActor()
+        
+        self.active_tool = None
+        for name, pv_actor in self.manipulation_cylinders.items():
+            if pv_actor == picked_vtk_actor:
+                self.active_tool = pv_actor
+                break
+        
+        if self.active_tool:
+            self.is_dragging = True
+            
+            self.plotter.interactor.SetInteractorStyle(vtk.vtkInteractorStyleUser())
+            
+            self.mouse_pos_prev = np.array(interactor.GetEventPosition())
+            
+            if len(self.transforms) > 0:
+                self.initial_effector_pos = self.transforms[-1][:3, 3]
+        else:
+            self.reset_interactor_style()
+
     def on_mouse_up(self, interactor, event):
-        pass
+        print("Bouton de souris relâché")
+        
+        self.is_dragging = False
+        self.active_tool = None
+        self.mouse_pos_prev = None
+        self.reset_interactor_style()
 
-    def handle_manipulation(self, cylinder_name):
-        pass
+    def on_mouse_move(self, interactor, event):
+        if not self.is_dragging or self.active_tool is None or interactor.GetControlKey() or interactor.GetShiftKey() or interactor.GetAltKey():
+            return
+        
+        current_pos = np.array(interactor.GetEventPosition())
+        
+        dx_screen = current_pos[0] - self.mouse_pos_prev[0]
+        dy_screen = current_pos[1] - self.mouse_pos_prev[1]
+        
+        self.mouse_pos_prev = current_pos
+        
+        tool_name = self.active_tool.name
+        
+        dx_desired = np.zeros(6)
+        gain = 0.5
+        
+        if 'trans' in tool_name:
+            if 'x' in tool_name:
+                axis = np.array([1, 0, 0])
+                movement = dx_screen * gain # Correction ici
+            elif 'y' in tool_name:
+                axis = np.array([0, 1, 0])
+                movement = dy_screen * gain # Correction ici
+            elif 'z' in tool_name:
+                axis = np.array([0, 0, 1])
+                movement = dy_screen * gain # Correction ici
+            else:
+                return
 
+            effector_rotation = self.transforms[-1][:3, :3]
+            axis_world = effector_rotation @ axis
+            
+            dx_desired[:3] = axis_world * movement
+            
+        elif 'rot' in tool_name:
+            if 'x' in tool_name:
+                axis = np.array([1, 0, 0])
+            elif 'y' in tool_name:
+                axis = np.array([0, 1, 0])
+            elif 'z' in tool_name:
+                axis = np.array([0, 0, 1])
+            else:
+                return
+
+            effector_rotation = self.transforms[-1][:3, :3]
+            axis_world = effector_rotation @ axis
+            
+            angle_delta = (dx_screen + dy_screen) * gain / 100.0
+            dx_desired[3:] = axis_world * angle_delta
+            
+        tool_center = self.transforms[-1][:3, 3]
+        tool_transform = self.active_tool.GetMatrix()
+        if tool_transform:
+            try:
+                tool_transform_np = np.array(tool_transform)
+                if tool_transform_np.shape == (4, 4):
+                    tool_center = tool_transform_np[:3, 3]
+            except Exception as e:
+                print(f"Erreur de conversion de la matrice en NumPy: {e}")
+        
+        J = calculate_geometric_jacobian(self.transforms, tool_center)
+
+        J_pinv = np.linalg.pinv(J)
+        
+        dq = J_pinv @ dx_desired
+        
+        q_current = np.array(list(self.joint_angles.values()))
+        q_new = q_current + np.rad2deg(dq)
+        
+        self.update_robot(q_new)
+
+    def reset_interactor_style(self):
+        """Réinitialise le style d'interacteur par défaut."""
+        self.plotter.interactor.SetInteractorStyle(self.plotter_style)
+        
     def setup_manipulation_cylinders(self):
-        # Création des maillages, sans les positionner tout de suite
         trans_height = 100
         trans_radius = 10
         
@@ -170,7 +276,6 @@ class RobotApp(QtWidgets.QMainWindow):
         rot_height = 2
         rot_radius = 100
         
-        # NOTE: Utilisation de `CylinderStructured` pour créer un anneau creux
         rot_x_mesh = pv.CylinderStructured(direction=(1, 0, 0), height=rot_height, radius=[rot_radius * 0.8, rot_radius])
         rot_y_mesh = pv.CylinderStructured(direction=(0, 1, 0), height=rot_height, radius=[rot_radius * 0.8, rot_radius])
         rot_z_mesh = pv.CylinderStructured(direction=(0, 0, 1), height=rot_height, radius=[rot_radius * 0.8, rot_radius])
@@ -178,70 +283,49 @@ class RobotApp(QtWidgets.QMainWindow):
         self.manipulation_cylinders['rot_x'] = self.plotter.add_mesh(rot_x_mesh, color='red', pickable=True, name='rot_x', render=False, opacity=0.2)
         self.manipulation_cylinders['rot_y'] = self.plotter.add_mesh(rot_y_mesh, color='green', pickable=True, name='rot_y', render=False, opacity=0.2)
         self.manipulation_cylinders['rot_z'] = self.plotter.add_mesh(rot_z_mesh, color='blue', pickable=True, name='rot_z', render=False, opacity=0.2)
-
+    
     def update_manipulation_cylinders(self):
-        # Création d'une transformation de base à partir de la position manuelle
         initial_tool_matrix = pv.Transform().translate(self.manipulation_center_pos).matrix
-        
-        # Récupération de la matrice de transformation de l'effecteur final (Wrist 2)
         final_effector_matrix = self.transforms[-1]
-
-        # Combine les transformations du Wrist 2 avec la position manuelle
-        # Note : L'ordre est important. On applique d'abord la transformation du Wrist2
-        # puis on y ajoute la translation manuelle.
         final_tool_matrix = final_effector_matrix @ initial_tool_matrix
-
-        # Applique cette nouvelle matrice à chaque outil
         for actor in self.manipulation_cylinders.values():
             actor.user_matrix = final_tool_matrix
-
         self.plotter.render()
         
     def update_robot(self, q_angles_deg=None):
         if q_angles_deg is None:
             q_angles_deg = np.array(list(self.joint_angles.values()))
-
         self.joint_angles['Base'] = q_angles_deg[0]
         self.joint_angles['Shoulder'] = q_angles_deg[1]
         self.joint_angles['Elbow'] = q_angles_deg[2]
         self.joint_angles['Wrist 1'] = q_angles_deg[3]
         self.joint_angles['Wrist 2'] = q_angles_deg[4]
-
+        for name, entry in self.entries.items():
+            entry.setText(f"{self.joint_angles[name]:.2f}")
         self.transforms = []
-        
         final_transform_base = pv.Transform().rotate_y(q_angles_deg[0]).matrix
         self.transforms.append(final_transform_base)
-        
         final_transform_shoulder = final_transform_base @ pv.Transform().translate(link_pivots['Shoulder']).matrix @ pv.Transform().rotate_z(q_angles_deg[1]).matrix
         self.transforms.append(final_transform_shoulder)
-        
         final_transform_elbow = final_transform_shoulder @ pv.Transform().translate(link_pivots['Elbow'] - link_pivots['Shoulder']).matrix @ pv.Transform().rotate_z(q_angles_deg[2]).matrix
         self.transforms.append(final_transform_elbow)
-        
         final_transform_wrist1 = final_transform_elbow @ pv.Transform().translate(link_pivots['Wrist 1'] - link_pivots['Elbow']).matrix @ pv.Transform().rotate_z(q_angles_deg[3]).matrix
         self.transforms.append(final_transform_wrist1)
-        
         final_transform_wrist2 = final_transform_wrist1 @ pv.Transform().translate(link_pivots['Wrist 2'] - link_pivots['Wrist 1']).matrix @ pv.Transform().rotate_y(q_angles_deg[4]).matrix
         self.transforms.append(final_transform_wrist2)
-        
         self.robot_actors['Base'].user_matrix = final_transform_base
         self.robot_actors['Shoulder'].user_matrix = final_transform_shoulder
         self.robot_actors['Elbow'].user_matrix = final_transform_elbow
         self.robot_actors['Wrist 1'].user_matrix = final_transform_wrist1
         self.robot_actors['Wrist 2'].user_matrix = final_transform_wrist2
-
         self.effector_marker_actor = self.robot_actors['Wrist 2']
-        
         self.update_manipulation_cylinders()
-
         self.plotter.render()
 
     def setup_robot_scene(self):
         self.plotter.background_color = 'white'
-        
         base_cylinder = pv.Cylinder(radius=120, height=20, direction=(0, 1, 0))
         self.plotter.add_mesh(base_cylinder, color='blue', opacity=0.8, pickable=False)
-        
         self.robot_actors = {
             'Base': self.plotter.add_mesh(initial_meshes['Base'], color='lightblue', label='Base'),
             'Shoulder': self.plotter.add_mesh(initial_meshes['Shoulder'], color='lightgreen', label='Shoulder'),
@@ -249,12 +333,10 @@ class RobotApp(QtWidgets.QMainWindow):
             'Wrist 1': self.plotter.add_mesh(initial_meshes['Wrist 1'], color='gold', label='Wrist 1'),
             'Wrist 2': self.plotter.add_mesh(initial_meshes['Wrist 2'], color='lightcoral', label='Wrist 2')
         }
-        
         self.pivot_meshes = {}
         for name, pos in link_pivots.items():
             self.pivot_meshes[name] = pv.Sphere(radius=5).translate(pos)
             self.plotter.add_mesh(self.pivot_meshes[name], color='red', render_points_as_spheres=True, point_size=10.0)
-
         slider_params = [
             ('Base', [-180, 180], self.joint_angles['Base']), 
             ('Shoulder', [-180, 180], self.joint_angles['Shoulder']), 
@@ -270,7 +352,6 @@ class RobotApp(QtWidgets.QMainWindow):
                 rng=rng, title=name, pointa=(0.02, start_y + i * spacing), pointb=(0.32, start_y + i * spacing),
                 value=value, style='modern'
             )
-        
         self.update_robot()
 
     def on_slider_change(self, value, name):
