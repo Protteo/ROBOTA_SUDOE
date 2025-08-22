@@ -86,7 +86,7 @@ class RobotApp(QtWidgets.QMainWindow):
         self.setWindowTitle("Contrôle du robot avec PyVista et PyQt")
 
         self.joint_angles = {
-            'Base': 0.0, 'Shoulder': 0.0, 'Elbow': 0.0, 'Wrist 1': 0.0, 'Wrist 2': 0.0
+            'Base': 0.0, 'Shoulder': 45.0, 'Elbow': 45.0, 'Wrist 1': 0.0, 'Wrist 2': 0.0
         }
         
         self.manipulation_center_pos = np.array([0.0, 145.0, -100.0])
@@ -139,6 +139,16 @@ class RobotApp(QtWidgets.QMainWindow):
         self.rot_radius = 100
 
         self.setup_manipulation_cylinders() 
+        
+        # Map VTK actors to tool names for robust picking
+        self.vtk_to_tool = {}
+        self.active_tool_name = None
+        try:
+            for _name, _actor in self.manipulation_cylinders.items():
+                _vtk_actor = getattr(_actor, "prop", _actor)
+                self.vtk_to_tool[_vtk_actor] = _name
+        except Exception:
+            pass
         self.setup_robot_scene()
         
         self.plotter.iren.add_observer('LeftButtonPressEvent', self.on_mouse_down)
@@ -153,12 +163,11 @@ class RobotApp(QtWidgets.QMainWindow):
         picked_vtk_actor = picker.GetActor()
         
         self.active_tool = None
-        for name, pv_actor in self.manipulation_cylinders.items():
-            if pv_actor == picked_vtk_actor:
-                self.active_tool = pv_actor
-                break
-        
-        if self.active_tool:
+        self.active_tool_name = None
+        tool_name = self.vtk_to_tool.get(picked_vtk_actor)
+        if tool_name:
+            self.active_tool_name = tool_name
+            self.active_tool = self.manipulation_cylinders.get(tool_name)
             self.is_dragging = True
             self.plotter.interactor.SetInteractorStyle(vtk.vtkInteractorStyleUser())
             self.mouse_pos_prev = np.array(interactor.GetEventPosition())
@@ -170,6 +179,7 @@ class RobotApp(QtWidgets.QMainWindow):
     def on_mouse_up(self, interactor, event):
         self.is_dragging = False
         self.active_tool = None
+        self.active_tool_name = None
         self.mouse_pos_prev = None
         self.reset_interactor_style()
 
@@ -191,35 +201,33 @@ class RobotApp(QtWidgets.QMainWindow):
         mouse_prev_xy = np.array(self.mouse_pos_prev)
         mouse_curr_xy = np.array(current_pos)
         
-        if 'trans' in self.active_tool.name:
-            
-            # Utiliser la méthode du renderer pour convertir les coordonnées de l'écran en monde
-            # On utilise un point de référence (z_value) qui est la position z de l'outil de manipulation
-            z_value = self.plotter.renderer.WorldToDisplay(*manip_center_global)[2]
-            
-            # Utiliser DisplayToWorld pour obtenir les coordonnées de l'effecteur dans le plan de l'outil de manipulation
-            prev_world_pos = np.array(self.plotter.renderer.DisplayToWorld(mouse_prev_xy[0], mouse_prev_xy[1], z_value))[:3]
-            current_world_pos = np.array(self.plotter.renderer.DisplayToWorld(mouse_curr_xy[0], mouse_curr_xy[1], z_value))[:3]
-            
-            # Calculer le vecteur de mouvement dans l'espace global
-            movement_vector = current_world_pos - prev_world_pos
-            
-            # L'axe de translation est un axe global (pas de l'effecteur)
-            global_axis_map = {
+        if self.active_tool_name and 'trans' in self.active_tool_name:
+            # Use local axis of the effector (as RViz), transformed to world
+            local_axis_map = {
                 'trans_x': np.array([1, 0, 0]),
                 'trans_y': np.array([0, 1, 0]),
-                'trans_z': np.array([0, 0, 1])
+                'trans_z': np.array([0, 0, 1]),
             }
-            
-            global_axis = global_axis_map.get(self.active_tool.name.replace('_neg', ''))
-            
-            # Projeter le mouvement de la souris sur l'axe global
-            projected_movement = np.dot(movement_vector, global_axis)
-            
-            # Mettre à jour la position cible de l'effecteur en conséquence
-            target_effector_matrix[:3, 3] = effector_pos_global + global_axis * projected_movement
+            base_name = self.active_tool_name.replace('_neg', '')
+            sign = -1.0 if '_neg' in self.active_tool_name else 1.0
+            axis_dir = effector_rot_matrix @ local_axis_map[base_name]
+            axis_dir = axis_dir / (np.linalg.norm(axis_dir) + 1e-12)
+            axis_dir *= sign
 
-        elif 'rot' in self.active_tool.name:
+            # mouse rays at previous and current positions
+            x0, y0 = self.mouse_pos_prev
+            x1, y1 = current_pos
+            r0, u0 = self._mouse_ray(x0, y0)
+            r1, u1 = self._mouse_ray(x1, y1)
+
+            # Axis line: p = manip_center_global + t * axis_dir
+            t_prev = self._closest_t_on_axis_from_ray(manip_center_global, axis_dir, r0, u0)
+            t_curr = self._closest_t_on_axis_from_ray(manip_center_global, axis_dir, r1, u1)
+            delta_t = t_curr - t_prev
+
+            target_effector_matrix[:3, 3] = effector_pos_global + axis_dir * delta_t
+
+        elif self.active_tool_name and 'rot' in self.active_tool_name:
             
             coord_ref = vtk.vtkCoordinate()
             coord_ref.SetCoordinateSystemToWorld()
@@ -251,7 +259,7 @@ class RobotApp(QtWidgets.QMainWindow):
                 'rot_y': np.array([0, 1, 0]),
                 'rot_z': np.array([0, 0, 1])
             }
-            local_axis = local_axis_map.get(self.active_tool.name.replace('_neg', ''))
+            local_axis = local_axis_map.get(self.active_tool_name.replace('_neg', ''))
             
             global_axis = effector_rot_matrix @ local_axis
             
@@ -265,6 +273,36 @@ class RobotApp(QtWidgets.QMainWindow):
         self.mouse_pos_prev = current_pos
         self._solve_ik_iteratively(target_effector_matrix)
         self.update_manipulation_cylinders()
+
+    def _mouse_ray(self, x, y):
+        """Return (ray_origin, ray_dir) in world coordinates from screen coords."""
+        p_near = np.array(self.plotter.renderer.DisplayToWorld(x, y, 0.0))[:3]
+        p_far = np.array(self.plotter.renderer.DisplayToWorld(x, y, 1.0))[:3]
+        d = p_far - p_near
+        n = np.linalg.norm(d) + 1e-12
+        return p_near, d / n
+
+    def _closest_t_on_axis_from_ray(self, axis_point, axis_dir, ray_origin, ray_dir):
+        """Closest point parameter t on the axis line to the given ray (origin+u*s)."""
+        v = axis_dir
+        u = ray_dir
+        w0 = axis_point - ray_origin
+        a = float(np.dot(v, v))
+        b = float(np.dot(v, u))
+        c = float(np.dot(u, u))
+        d = float(np.dot(v, w0))
+        e = float(np.dot(u, w0))
+        denom = a * c - b * b
+        if abs(denom) < 1e-9:
+            # Fallback: intersect mouse ray with plane ⟂ axis through axis_point
+            n = v / (np.linalg.norm(v) + 1e-12)
+            denom2 = float(np.dot(ray_dir, n))
+            if abs(denom2) < 1e-9:
+                return 0.0
+            t_ray = float(np.dot(axis_point - ray_origin, n) / denom2)
+            p = ray_origin + t_ray * ray_dir
+            return float(np.dot(p - axis_point, n))
+        return float((b * e - c * d) / denom)
 
     def _solve_ik_iteratively(self, desired_effector_transform_matrix):
         max_iterations = 20
