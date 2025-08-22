@@ -5,7 +5,6 @@ import sys
 import os
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-import time
 import vtk
 
 # Chemins de vos fichiers STL
@@ -146,8 +145,6 @@ class RobotApp(QtWidgets.QMainWindow):
         self.plotter.iren.add_observer('MouseMoveEvent', self.on_mouse_move)
 
     def on_mouse_down(self, interactor, event):
-        print("Bouton de souris enfoncé")
-        
         click_pos = interactor.GetEventPosition()
         
         picker = vtk.vtkPropPicker()
@@ -162,19 +159,14 @@ class RobotApp(QtWidgets.QMainWindow):
         
         if self.active_tool:
             self.is_dragging = True
-            
             self.plotter.interactor.SetInteractorStyle(vtk.vtkInteractorStyleUser())
-            
             self.mouse_pos_prev = np.array(interactor.GetEventPosition())
-            
             if len(self.transforms) > 0:
                 self.initial_effector_pos = self.transforms[-1][:3, 3]
         else:
             self.reset_interactor_style()
 
     def on_mouse_up(self, interactor, event):
-        print("Bouton de souris relâché")
-        
         self.is_dragging = False
         self.active_tool = None
         self.mouse_pos_prev = None
@@ -185,74 +177,145 @@ class RobotApp(QtWidgets.QMainWindow):
             return
         
         current_pos = np.array(interactor.GetEventPosition())
+        effector_matrix = self.transforms[-1]
         
-        dx_screen = current_pos[0] - self.mouse_pos_prev[0]
-        dy_screen = current_pos[1] - self.mouse_pos_prev[1]
+        effector_pos_global = effector_matrix[:3, 3]
+        effector_rot_matrix = effector_matrix[:3, :3]
         
+        manip_center_global = effector_pos_global + effector_rot_matrix @ self.manipulation_center_pos
+        
+        target_effector_matrix = np.eye(4)
+        target_effector_matrix[:3, :3] = effector_rot_matrix
+        
+        mouse_prev_xy = np.array(self.mouse_pos_prev)
+        mouse_curr_xy = np.array(current_pos)
+        
+        if 'trans' in self.active_tool.name:
+            # Vecteur de déplacement de la souris en pixels
+            delta_pixels = mouse_curr_xy - mouse_prev_xy
+            
+            # Définir l'axe de translation dans le repère LOCAL de l'effecteur
+            local_axis_map = {
+                'trans_x': np.array([1, 0, 0]),
+                'trans_y': np.array([0, 1, 0]),
+                'trans_z': np.array([0, 0, 1])
+            }
+            local_axis = local_axis_map.get(self.active_tool.name.replace('_neg', ''))
+            
+            # Conversion approximative des pixels en une distance du monde
+            movement_scale = 0.5
+            
+            # Créer un vecteur de mouvement basé sur la direction de l'axe local
+            if np.abs(local_axis[0]) > 0: 
+                movement_amount = delta_pixels[0] * movement_scale
+            elif np.abs(local_axis[1]) > 0:
+                movement_amount = delta_pixels[1] * movement_scale
+            else:
+                movement_amount = delta_pixels[1] * movement_scale
+            
+            # Créer le vecteur de déplacement dans le repère local de l'effecteur
+            local_movement_vector = local_axis * movement_amount
+
+            # Convertir le vecteur de déplacement du repère LOCAL de l'effecteur au repère GLOBAL
+            global_movement_vector = effector_rot_matrix @ local_movement_vector
+
+            # Mettre à jour la position cible de l'effecteur dans le repère GLOBAL
+            target_effector_matrix[:3, 3] = effector_pos_global + global_movement_vector
+
+        elif 'rot' in self.active_tool.name:
+            
+            coord_ref = vtk.vtkCoordinate()
+            coord_ref.SetCoordinateSystemToWorld()
+            coord_ref.SetValue(manip_center_global)
+            center_screen = np.array(coord_ref.GetComputedDisplayValue(self.plotter.renderer))[:2]
+            
+            vec_prev = mouse_prev_xy - center_screen
+            vec_curr = mouse_curr_xy - center_screen
+            
+            vec_prev_3d = np.append(vec_prev, 0)
+            vec_curr_3d = np.append(vec_curr, 0)
+            
+            norm_prev = np.linalg.norm(vec_prev_3d)
+            norm_curr = np.linalg.norm(vec_curr_3d)
+            
+            if norm_prev < 1e-6 or norm_curr < 1e-6:
+                self.mouse_pos_prev = current_pos
+                return
+            
+            dot_product = np.dot(vec_prev_3d, vec_curr_3d)
+            cross_product = np.cross(vec_prev_3d, vec_curr_3d)
+            
+            angle_rad = np.arctan2(np.linalg.norm(cross_product), dot_product)
+            
+            z_direction = np.sign(cross_product[2])
+            
+            local_axis_map = {
+                'rot_x': np.array([1, 0, 0]),
+                'rot_y': np.array([0, 1, 0]),
+                'rot_z': np.array([0, 0, 1])
+            }
+            local_axis = local_axis_map.get(self.active_tool.name.replace('_neg', ''))
+            
+            global_axis = effector_rot_matrix @ local_axis
+            
+            rotation_delta = R.from_rotvec(global_axis * angle_rad * z_direction)
+            
+            current_rotation = R.from_matrix(effector_rot_matrix)
+            new_rotation = rotation_delta * current_rotation
+            
+            target_effector_matrix[:3, :3] = new_rotation.as_matrix()
+            
         self.mouse_pos_prev = current_pos
-        
-        tool_name = self.active_tool.name
-        
-        dx_desired = np.zeros(6)
-        gain = 0.5
-        
-        if 'trans' in tool_name:
-            if 'x' in tool_name:
-                axis = np.array([1, 0, 0])
-                movement = dx_screen * gain # Correction ici
-            elif 'y' in tool_name:
-                axis = np.array([0, 1, 0])
-                movement = dy_screen * gain # Correction ici
-            elif 'z' in tool_name:
-                axis = np.array([0, 0, 1])
-                movement = dy_screen * gain # Correction ici
-            else:
-                return
+        self._solve_ik_iteratively(target_effector_matrix)
+        self.update_manipulation_cylinders()
 
-            effector_rotation = self.transforms[-1][:3, :3]
-            axis_world = effector_rotation @ axis
-            
-            dx_desired[:3] = axis_world * movement
-            
-        elif 'rot' in tool_name:
-            if 'x' in tool_name:
-                axis = np.array([1, 0, 0])
-            elif 'y' in tool_name:
-                axis = np.array([0, 1, 0])
-            elif 'z' in tool_name:
-                axis = np.array([0, 0, 1])
-            else:
-                return
+    def _solve_ik_iteratively(self, desired_effector_transform_matrix):
+        max_iterations = 20
+        epsilon_pos = 1.0
+        epsilon_rot = 1.0
 
-            effector_rotation = self.transforms[-1][:3, :3]
-            axis_world = effector_rotation @ axis
-            
-            angle_delta = (dx_screen + dy_screen) * gain / 100.0
-            dx_desired[3:] = axis_world * angle_delta
-            
-        tool_center = self.transforms[-1][:3, 3]
-        tool_transform = self.active_tool.GetMatrix()
-        if tool_transform:
-            try:
-                tool_transform_np = np.array(tool_transform)
-                if tool_transform_np.shape == (4, 4):
-                    tool_center = tool_transform_np[:3, 3]
-            except Exception as e:
-                print(f"Erreur de conversion de la matrice en NumPy: {e}")
-        
-        J = calculate_geometric_jacobian(self.transforms, tool_center)
+        q_angles_deg = np.array(list(self.joint_angles.values()))
+        q_angles_rad = np.deg2rad(q_angles_deg)
 
-        J_pinv = np.linalg.pinv(J)
+        for i in range(max_iterations):
+            self.update_robot(q_angles_deg)
+            current_effector_transform = self.transforms[-1]
+            
+            current_pos = current_effector_transform[:3, 3]
+            desired_pos = desired_effector_transform_matrix[:3, 3]
+
+            current_rot_matrix = current_effector_transform[:3, :3]
+            desired_rot_matrix = desired_effector_transform_matrix[:3, :3]
+            
+            delta_pos = desired_pos - current_pos
+            R_err = desired_rot_matrix @ current_rot_matrix.T
+            rot_vec = R.from_matrix(R_err).as_rotvec()
+            
+            dx_error = np.zeros(6)
+            dx_error[:3] = delta_pos
+            dx_error[3:] = rot_vec
+            
+            if np.linalg.norm(dx_error[:3]) < epsilon_pos and np.linalg.norm(np.rad2deg(dx_error[3:])) < epsilon_rot:
+                break
+                
+            J = calculate_geometric_jacobian(self.transforms, current_pos)
+            
+            lambda_damping = 0.5 
+            J_damped = J.T @ J + lambda_damping * np.eye(J.shape[1])
+            J_pinv = np.linalg.inv(J_damped) @ J.T
+            
+            dq = J_pinv @ dx_error
+            
+            max_dq_deg = 5.0
+            dq_norm = np.linalg.norm(np.rad2deg(dq))
+            if dq_norm > max_dq_deg:
+                dq = dq * (max_dq_deg / dq_norm)
+            
+            q_angles_deg += np.rad2deg(dq)
         
-        dq = J_pinv @ dx_desired
-        
-        q_current = np.array(list(self.joint_angles.values()))
-        q_new = q_current + np.rad2deg(dq)
-        
-        self.update_robot(q_new)
+        self.update_robot(q_angles_deg)
 
     def reset_interactor_style(self):
-        """Réinitialise le style d'interacteur par défaut."""
         self.plotter.interactor.SetInteractorStyle(self.plotter_style)
         
     def setup_manipulation_cylinders(self):
