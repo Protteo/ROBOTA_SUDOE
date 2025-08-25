@@ -161,11 +161,6 @@ class RobotApp(QtWidgets.QMainWindow):
         self.timer.timeout.connect(self.update_joystick_control)
         self.timer.start(75) 
         
-        # Point d'application des commandes
-        # REMOVED: self.command_target_pos
-        # REMOVED: self.command_target_actor
-        # REMOVED: self.command_target_orientation
-
         self.update_robot()
         
         self.last_print_time = 0
@@ -176,67 +171,76 @@ class RobotApp(QtWidgets.QMainWindow):
 
         pygame.event.pump()
         current_time = pygame.time.get_ticks()
-        if current_time - self.last_print_time > 1000:
-            # self.print_joystick_status()
-            self.last_print_time = current_time
 
         deadzone = 0.1
-
-        # --- Début du mappage des axes avec correction ---
-        # Joystick 0 (translation)
+        translation_speed = 5.0
+        
+        # --- Lecture et gestion des axes du Joystick 0 (Translation) ---
         trans_x_raw = self.joysticks[0].get_axis(0)
         trans_y_raw = self.joysticks[0].get_axis(1)
-        trans_z_raw = self.joysticks[0].get_axis(2)  
-        trans_other_raw = self.joysticks[0].get_axis(3)
         
-        # Joystick 1 (rotation)
-        rot_x_raw = self.joysticks[1].get_axis(0)
-        rot_y_raw = self.joysticks[1].get_axis(1)
-        rot_z_raw = self.joysticks[1].get_axis(2) 
-
-        # On force les axes inutiles à 0 pour éviter toute dérive
-        # Mettez les axes que vous voulez ignorer ici
+        trans_z_raw = 0.0
         if self.joysticks[0].get_numaxes() > 2:
-            trans_z_raw = 0.0
-        if self.joysticks[0].get_numaxes() > 3:
-            trans_other_raw = 0.0
-        if self.joysticks[1].get_numaxes() > 2:
-            rot_z_raw = 0.0
+            trans_z_raw = self.joysticks[0].get_axis(2)
         
-        # --- Fin du mappage des axes ---
-
-        # Appliquer la zone morte aux axes pertinents
         trans_x = trans_x_raw if abs(trans_x_raw) > deadzone else 0.0
         trans_y = trans_y_raw if abs(trans_y_raw) > deadzone else 0.0
-        rot_x = rot_x_raw if abs(rot_x_raw) > deadzone else 0.0
-        rot_y = rot_y_raw if abs(rot_y_raw) > deadzone else 0.0
+        trans_z = trans_z_raw if abs(trans_z_raw) > deadzone else 0.0
         
-        translation_speed = 5.0
-        rotation_speed_deg = 2.0
+        # Les vitesses de rotation sont nulles pour l'instant
+        rot_x = 0.0
+        rot_y = 0.0
+        rot_z = 0.0
         
-        # Convertir les commandes du joystick en vitesses de l'effecteur final
-        # Utilisation de la vitesse linéaire et angulaire directement
+        # Créer le vecteur de vitesse souhaité dans le repère global
+        # Mouvements en X, Y et Z du repère global
+        desired_dx_global = np.array([trans_x * translation_speed, trans_y * translation_speed, 0.0])
+
+        # Créer un vecteur de vitesse complet (linéaire et angulaire) dans le repère de l'effecteur
+        # L'orientation ne change pas donc les vitesses angulaires sont nulles
         desired_dx_local = np.zeros(6)
-        desired_dx_local[:3] = np.array([trans_x * translation_speed, trans_y * translation_speed, trans_z_raw * translation_speed])
-        desired_dx_local[3:] = np.deg2rad(np.array([rot_x * rotation_speed_deg, rot_y * rotation_speed_deg, rot_z_raw * rotation_speed_deg]))
         
+        # On projette le mouvement global sur le repère de l'effecteur
+        current_effector_matrix = self.transforms[-1]
+        R_effector_global = current_effector_matrix[:3, :3]
+        desired_dx_local[:3] = R_effector_global.T @ desired_dx_global
+
         if np.allclose(desired_dx_local, np.zeros(6), atol=0.01):
             dq = np.zeros(5)
         else:
-            current_effector_matrix = self.transforms[-1]
             current_effector_pos = current_effector_matrix[:3, 3] + end_effector_offset
-            
             J = calculate_geometric_jacobian(self.transforms, current_effector_pos)
             
-            # Utilisation de la pseudo-inverse amortie pour éviter les singularités
+            # Utilisation de la pseudo-inverse amortie
             lambda_damping = 0.25 
             J_damped = J.T @ J + lambda_damping * np.eye(J.shape[1])
+            J_pinv = np.linalg.inv(J_damped) @ J.T
+
+            # Calcul du mouvement principal
+            dq_principal = J_pinv @ desired_dx_local
             
-            if np.linalg.det(J_damped) != 0:
-                J_pinv = np.linalg.inv(J_damped) @ J.T
-                dq = J_pinv @ desired_dx_local
-            else:
-                dq = np.zeros(5)
+            # --- CALCUL DE LA PROJECTION DE L'ESPACE NUL ---
+            # Objectif secondaire : minimiser les rotations de l'effecteur
+            # On veut que la vitesse de rotation de l'effecteur soit nulle.
+            # Le vecteur de vitesse de rotation souhaitée est [0, 0, 0].
+            # L'erreur est la vitesse de rotation actuelle de l'effecteur, mais on veut
+            # la minimiser pour une orientation fixe.
+            
+            # Le vecteur de vitesse d'erreur pour la tâche secondaire
+            # On cherche a minimiser les vitesses articulaires (plus simple et plus stable pour ce cas)
+            desired_dq_secondary = np.zeros(5) 
+            
+            # Calcul du projecteur de l'espace nul
+            I = np.eye(J_pinv.shape[0])
+            P = I - J_pinv @ J
+            
+            # Calcul du mouvement secondaire en utilisant la pseudo-inverse et le projecteur de l'espace nul
+            # Le projecteur garantit que ce mouvement n'interfère pas avec la tâche principale
+            dq_secondary = P @ desired_dq_secondary
+            
+            # Combinaison des deux mouvements
+            dq = dq_principal + dq_secondary
+            # --- FIN DU CALCUL DE L'ESPACE NUL ---
 
         q_angles_deg = np.array(list(self.joint_angles.values()))
         q_angles_deg += np.rad2deg(dq)
