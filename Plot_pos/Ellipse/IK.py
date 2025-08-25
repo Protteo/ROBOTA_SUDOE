@@ -5,8 +5,8 @@ import sys
 import os
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-import time
 import vtk
+import pygame
 
 # Chemins de vos fichiers STL
 base_path = r"C:\Users\matte\OneDrive\Documents\Scolaire\Sigma\2A\Stage\ROBOTA SUDOE\Tactile_sensor\ROBOTA_SUDOE\Plot_pos\Ellipse\704-244-01_filled_A\Base.stl"
@@ -86,8 +86,24 @@ class RobotApp(QtWidgets.QMainWindow):
         self.setWindowTitle("Contrôle du robot avec PyVista et PyQt")
 
         self.joint_angles = {
-            'Base': 0.0, 'Shoulder': 0.0, 'Elbow': 0.0, 'Wrist 1': 0.0, 'Wrist 2': 0.0
+            'Base': 0.0, 'Shoulder': 45.0, 'Elbow': 45.0, 'Wrist 1': 0.0, 'Wrist 2': 0.0
         }
+        
+        pygame.init()
+        pygame.joystick.init()
+        
+        self.joysticks = []
+        joystick_count = pygame.joystick.get_count()
+
+        if joystick_count > 0:
+            print(f"{joystick_count} joystick(s) détecté(s).")
+            for i in range(joystick_count):
+                joystick = pygame.joystick.Joystick(i)
+                joystick.init()
+                self.joysticks.append(joystick)
+                print(f"Joystick {i} initialisé : {joystick.get_name()}")
+        else:
+            print("Aucun joystick détecté.")
         
         self.manipulation_center_pos = np.array([0.0, 145.0, -100.0])
         self.last_key_press_time = 0.0
@@ -118,7 +134,7 @@ class RobotApp(QtWidgets.QMainWindow):
             entry_layout = QtWidgets.QHBoxLayout()
             label = QtWidgets.QLabel(f"Angle {name}:")
             entry = QtWidgets.QLineEdit(str(self.joint_angles[name]))
-            entry.returnPressed.connect(lambda n=name, e=entry: self.on_text_entry(n, e))
+            entry.setReadOnly(True)
             self.entries[name] = entry
             entry_layout.addWidget(label)
             entry_layout.addWidget(entry)
@@ -141,176 +157,125 @@ class RobotApp(QtWidgets.QMainWindow):
         self.setup_manipulation_cylinders() 
         self.setup_robot_scene()
         
-        self.plotter.iren.add_observer('LeftButtonPressEvent', self.on_mouse_down)
-        self.plotter.iren.add_observer('LeftButtonReleaseEvent', self.on_mouse_up)
-        self.plotter.iren.add_observer('MouseMoveEvent', self.on_mouse_move)
-
-    def on_mouse_down(self, interactor, event):
-        click_pos = interactor.GetEventPosition()
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.update_joystick_control)
+        self.timer.start(75) 
         
-        picker = vtk.vtkPropPicker()
-        picker.Pick(click_pos[0], click_pos[1], 0, self.plotter.renderer)
-        picked_vtk_actor = picker.GetActor()
-        
-        self.active_tool = None
-        for name, pv_actor in self.manipulation_cylinders.items():
-            if pv_actor == picked_vtk_actor:
-                self.active_tool = pv_actor
-                break
-        
-        if self.active_tool:
-            self.is_dragging = True
-            self.plotter.interactor.SetInteractorStyle(vtk.vtkInteractorStyleUser())
-            self.mouse_pos_prev = np.array(interactor.GetEventPosition())
-            if len(self.transforms) > 0:
-                self.initial_effector_pos = self.transforms[-1][:3, 3]
-        else:
-            self.reset_interactor_style()
+        # Point d'application des commandes
+        # REMOVED: self.command_target_pos
+        # REMOVED: self.command_target_actor
+        # REMOVED: self.command_target_orientation
 
-    def on_mouse_up(self, interactor, event):
-        self.is_dragging = False
-        self.active_tool = None
-        self.mouse_pos_prev = None
-        self.reset_interactor_style()
+        self.update_robot()
+        
+        self.last_print_time = 0
 
-    def on_mouse_move(self, interactor, event):
-        if not self.is_dragging or self.active_tool is None or interactor.GetControlKey() or interactor.GetShiftKey() or interactor.GetAltKey():
+    def update_joystick_control(self):
+        if len(self.joysticks) < 2:
             return
-        
-        current_pos = np.array(interactor.GetEventPosition())
-        effector_matrix = self.transforms[-1]
-        
-        effector_pos_global = effector_matrix[:3, 3]
-        effector_rot_matrix = effector_matrix[:3, :3]
-        
-        manip_center_global = effector_pos_global + effector_rot_matrix @ self.manipulation_center_pos
-        
-        target_effector_matrix = np.eye(4)
-        target_effector_matrix[:3, :3] = effector_rot_matrix
-        
-        mouse_prev_xy = np.array(self.mouse_pos_prev)
-        mouse_curr_xy = np.array(current_pos)
-        
-        if 'trans' in self.active_tool.name:
-            
-            # Utiliser la méthode du renderer pour convertir les coordonnées de l'écran en monde
-            # On utilise un point de référence (z_value) qui est la position z de l'outil de manipulation
-            z_value = self.plotter.renderer.WorldToDisplay(*manip_center_global)[2]
-            
-            # Utiliser DisplayToWorld pour obtenir les coordonnées de l'effecteur dans le plan de l'outil de manipulation
-            prev_world_pos = np.array(self.plotter.renderer.DisplayToWorld(mouse_prev_xy[0], mouse_prev_xy[1], z_value))[:3]
-            current_world_pos = np.array(self.plotter.renderer.DisplayToWorld(mouse_curr_xy[0], mouse_curr_xy[1], z_value))[:3]
-            
-            # Calculer le vecteur de mouvement dans l'espace global
-            movement_vector = current_world_pos - prev_world_pos
-            
-            # L'axe de translation est un axe global (pas de l'effecteur)
-            global_axis_map = {
-                'trans_x': np.array([1, 0, 0]),
-                'trans_y': np.array([0, 1, 0]),
-                'trans_z': np.array([0, 0, 1])
-            }
-            
-            global_axis = global_axis_map.get(self.active_tool.name.replace('_neg', ''))
-            
-            # Projeter le mouvement de la souris sur l'axe global
-            projected_movement = np.dot(movement_vector, global_axis)
-            
-            # Mettre à jour la position cible de l'effecteur en conséquence
-            target_effector_matrix[:3, 3] = effector_pos_global + global_axis * projected_movement
 
-        elif 'rot' in self.active_tool.name:
-            
-            coord_ref = vtk.vtkCoordinate()
-            coord_ref.SetCoordinateSystemToWorld()
-            coord_ref.SetValue(manip_center_global)
-            center_screen = np.array(coord_ref.GetComputedDisplayValue(self.plotter.renderer))[:2]
-            
-            vec_prev = mouse_prev_xy - center_screen
-            vec_curr = mouse_curr_xy - center_screen
-            
-            vec_prev_3d = np.append(vec_prev, 0)
-            vec_curr_3d = np.append(vec_curr, 0)
-            
-            norm_prev = np.linalg.norm(vec_prev_3d)
-            norm_curr = np.linalg.norm(vec_curr_3d)
-            
-            if norm_prev < 1e-6 or norm_curr < 1e-6:
-                self.mouse_pos_prev = current_pos
-                return
-            
-            dot_product = np.dot(vec_prev_3d, vec_curr_3d)
-            cross_product = np.cross(vec_prev_3d, vec_curr_3d)
-            
-            angle_rad = np.arctan2(np.linalg.norm(cross_product), dot_product)
-            
-            z_direction = np.sign(cross_product[2])
-            
-            local_axis_map = {
-                'rot_x': np.array([1, 0, 0]),
-                'rot_y': np.array([0, 1, 0]),
-                'rot_z': np.array([0, 0, 1])
-            }
-            local_axis = local_axis_map.get(self.active_tool.name.replace('_neg', ''))
-            
-            global_axis = effector_rot_matrix @ local_axis
-            
-            rotation_delta = R.from_rotvec(global_axis * angle_rad * z_direction)
-            
-            current_rotation = R.from_matrix(effector_rot_matrix)
-            new_rotation = rotation_delta * current_rotation
-            
-            target_effector_matrix[:3, :3] = new_rotation.as_matrix()
-            
-        self.mouse_pos_prev = current_pos
-        self._solve_ik_iteratively(target_effector_matrix)
-        self.update_manipulation_cylinders()
+        pygame.event.pump()
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_print_time > 1000:
+            # self.print_joystick_status()
+            self.last_print_time = current_time
 
-    def _solve_ik_iteratively(self, desired_effector_transform_matrix):
-        max_iterations = 20
-        epsilon_pos = 1.0
-        epsilon_rot = 1.0
+        deadzone = 0.1
+
+        # --- Début du mappage des axes avec correction ---
+        # Joystick 0 (translation)
+        trans_x_raw = self.joysticks[0].get_axis(0)
+        trans_y_raw = self.joysticks[0].get_axis(1)
+        trans_z_raw = self.joysticks[0].get_axis(2)  
+        trans_other_raw = self.joysticks[0].get_axis(3)
+        
+        # Joystick 1 (rotation)
+        rot_x_raw = self.joysticks[1].get_axis(0)
+        rot_y_raw = self.joysticks[1].get_axis(1)
+        rot_z_raw = self.joysticks[1].get_axis(2) 
+
+        # On force les axes inutiles à 0 pour éviter toute dérive
+        # Mettez les axes que vous voulez ignorer ici
+        if self.joysticks[0].get_numaxes() > 2:
+            trans_z_raw = 0.0
+        if self.joysticks[0].get_numaxes() > 3:
+            trans_other_raw = 0.0
+        if self.joysticks[1].get_numaxes() > 2:
+            rot_z_raw = 0.0
+        
+        # --- Fin du mappage des axes ---
+
+        # Appliquer la zone morte aux axes pertinents
+        trans_x = trans_x_raw if abs(trans_x_raw) > deadzone else 0.0
+        trans_y = trans_y_raw if abs(trans_y_raw) > deadzone else 0.0
+        rot_x = rot_x_raw if abs(rot_x_raw) > deadzone else 0.0
+        rot_y = rot_y_raw if abs(rot_y_raw) > deadzone else 0.0
+        
+        translation_speed = 5.0
+        rotation_speed_deg = 2.0
+        
+        # Convertir les commandes du joystick en vitesses de l'effecteur final
+        # Utilisation de la vitesse linéaire et angulaire directement
+        desired_dx_local = np.zeros(6)
+        desired_dx_local[:3] = np.array([trans_x * translation_speed, trans_y * translation_speed, trans_z_raw * translation_speed])
+        desired_dx_local[3:] = np.deg2rad(np.array([rot_x * rotation_speed_deg, rot_y * rotation_speed_deg, rot_z_raw * rotation_speed_deg]))
+        
+        if np.allclose(desired_dx_local, np.zeros(6), atol=0.01):
+            dq = np.zeros(5)
+        else:
+            current_effector_matrix = self.transforms[-1]
+            current_effector_pos = current_effector_matrix[:3, 3] + end_effector_offset
+            
+            J = calculate_geometric_jacobian(self.transforms, current_effector_pos)
+            
+            # Utilisation de la pseudo-inverse amortie pour éviter les singularités
+            lambda_damping = 0.25 
+            J_damped = J.T @ J + lambda_damping * np.eye(J.shape[1])
+            
+            if np.linalg.det(J_damped) != 0:
+                J_pinv = np.linalg.inv(J_damped) @ J.T
+                dq = J_pinv @ desired_dx_local
+            else:
+                dq = np.zeros(5)
 
         q_angles_deg = np.array(list(self.joint_angles.values()))
-        q_angles_rad = np.deg2rad(q_angles_deg)
-
-        for i in range(max_iterations):
-            self.update_robot(q_angles_deg)
-            current_effector_transform = self.transforms[-1]
-            
-            current_pos = current_effector_transform[:3, 3]
-            desired_pos = desired_effector_transform_matrix[:3, 3]
-
-            current_rot_matrix = current_effector_transform[:3, :3]
-            desired_rot_matrix = desired_effector_transform_matrix[:3, :3]
-            
-            delta_pos = desired_pos - current_pos
-            R_err = desired_rot_matrix @ current_rot_matrix.T
-            rot_vec = R.from_matrix(R_err).as_rotvec()
-            
-            dx_error = np.zeros(6)
-            dx_error[:3] = delta_pos
-            dx_error[3:] = rot_vec
-            
-            if np.linalg.norm(dx_error[:3]) < epsilon_pos and np.linalg.norm(np.rad2deg(dx_error[3:])) < epsilon_rot:
-                break
-                
-            J = calculate_geometric_jacobian(self.transforms, current_pos)
-            
-            lambda_damping = 0.5 
-            J_damped = J.T @ J + lambda_damping * np.eye(J.shape[1])
-            J_pinv = np.linalg.inv(J_damped) @ J.T
-            
-            dq = J_pinv @ dx_error
-            
-            max_dq_deg = 5.0
-            dq_norm = np.linalg.norm(np.rad2deg(dq))
-            if dq_norm > max_dq_deg:
-                dq = dq * (max_dq_deg / dq_norm)
-            
-            q_angles_deg += np.rad2deg(dq)
+        q_angles_deg += np.rad2deg(dq)
         
         self.update_robot(q_angles_deg)
+        self.update_manipulation_cylinders()
+        
+    def print_joystick_status(self):
+        """Affiche les valeurs de tous les axes, boutons et hats pour chaque joystick."""
+        print("-" * 20)
+        for i, joystick in enumerate(self.joysticks):
+            print(f"État du Joystick {i} ({joystick.get_name()}):")
+            
+            num_axes = joystick.get_numaxes()
+            if num_axes > 0:
+                print("  Axes :")
+            for axis_idx in range(num_axes):
+                axis_value = joystick.get_axis(axis_idx)
+                print(f"    Axe {axis_idx}: {axis_value:.4f}")
+            
+            num_buttons = joystick.get_numbuttons()
+            if num_buttons > 0:
+                print("  Boutons :")
+            for button_idx in range(num_buttons):
+                button_state = joystick.get_button(button_idx)
+                if button_state:
+                    print(f"    Bouton {button_idx}: ENFONCÉ")
+
+            num_hats = joystick.get_numhats()
+            if num_hats > 0:
+                print("  Hats :")
+            for hat_idx in range(num_hats):
+                hat_state = joystick.get_hat(hat_idx)
+                if hat_state != (0, 0):
+                    print(f"    Hat {hat_idx}: {hat_state}")
+        print("-" * 20)
+        
+    def _solve_ik_iteratively(self, desired_effector_transform_matrix):
+        pass
 
     def reset_interactor_style(self):
         self.plotter.interactor.SetInteractorStyle(self.plotter_style)
@@ -355,13 +320,16 @@ class RobotApp(QtWidgets.QMainWindow):
     def update_robot(self, q_angles_deg=None):
         if q_angles_deg is None:
             q_angles_deg = np.array(list(self.joint_angles.values()))
+        
         self.joint_angles['Base'] = q_angles_deg[0]
         self.joint_angles['Shoulder'] = q_angles_deg[1]
         self.joint_angles['Elbow'] = q_angles_deg[2]
         self.joint_angles['Wrist 1'] = q_angles_deg[3]
         self.joint_angles['Wrist 2'] = q_angles_deg[4]
+        
         for name, entry in self.entries.items():
             entry.setText(f"{self.joint_angles[name]:.2f}")
+            
         self.transforms = []
         final_transform_base = pv.Transform().rotate_y(q_angles_deg[0]).matrix
         self.transforms.append(final_transform_base)
@@ -373,15 +341,18 @@ class RobotApp(QtWidgets.QMainWindow):
         self.transforms.append(final_transform_wrist1)
         final_transform_wrist2 = final_transform_wrist1 @ pv.Transform().translate(link_pivots['Wrist 2'] - link_pivots['Wrist 1']).matrix @ pv.Transform().rotate_y(q_angles_deg[4]).matrix
         self.transforms.append(final_transform_wrist2)
+        
         self.robot_actors['Base'].user_matrix = final_transform_base
         self.robot_actors['Shoulder'].user_matrix = final_transform_shoulder
         self.robot_actors['Elbow'].user_matrix = final_transform_elbow
         self.robot_actors['Wrist 1'].user_matrix = final_transform_wrist1
         self.robot_actors['Wrist 2'].user_matrix = final_transform_wrist2
+        
         self.effector_marker_actor = self.robot_actors['Wrist 2']
+        
         self.update_manipulation_cylinders()
         self.plotter.render()
-
+        
     def setup_robot_scene(self):
         self.plotter.background_color = 'white'
         base_cylinder = pv.Cylinder(radius=120, height=20, direction=(0, 1, 0))
@@ -397,40 +368,21 @@ class RobotApp(QtWidgets.QMainWindow):
         for name, pos in link_pivots.items():
             self.pivot_meshes[name] = pv.Sphere(radius=5).translate(pos)
             self.plotter.add_mesh(self.pivot_meshes[name], color='red', render_points_as_spheres=True, point_size=10.0)
-        slider_params = [
-            ('Base', [-180, 180], self.joint_angles['Base']), 
-            ('Shoulder', [-180, 180], self.joint_angles['Shoulder']), 
-            ('Elbow', [-180, 180], self.joint_angles['Elbow']),
-            ('Wrist 1', [-180, 180], self.joint_angles['Wrist 1']), 
-            ('Wrist 2', [-180, 180], self.joint_angles['Wrist 2'])
-        ]
-        spacing = 0.15
-        start_y = 0.1
-        for i, (name, rng, value) in enumerate(slider_params):
-            self.plotter.add_slider_widget(
-                callback=lambda val, n=name: self.on_slider_change(val, n),
-                rng=rng, title=name, pointa=(0.02, start_y + i * spacing), pointb=(0.32, start_y + i * spacing),
-                value=value, style='modern'
-            )
+            
         self.update_robot()
 
     def on_slider_change(self, value, name):
-        self.joint_angles[name] = value
-        self.entries[name].setText(f"{value:.2f}")
-        self.update_robot()
+        pass
 
     def on_text_entry(self, name, entry):
-        try:
-            value = float(entry.text())
-            self.joint_angles[name] = value
-            self.update_robot()
-        except ValueError:
-            pass
+        pass
 
     def calculate_and_plot_ellipsoid(self, jacobien, wrist2_transform_matrix, scale_factor=250):
         pass
 
 if __name__ == '__main__':
+    pygame.init()
+    
     app = QtWidgets.QApplication(sys.argv)
     window = RobotApp()
     window.show()
