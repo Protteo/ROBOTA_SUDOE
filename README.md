@@ -2,7 +2,9 @@
 <ins>**Plot_Pos**</ins> : Inside, there is a file with every data got from expériences <ins>**wrench_camera_data**</ins>.   
 - **Plot_pos.py** enable to plot 4 Windows to get different pieces of information. You get real time values for the 6 sensors, a histogram about the values' frequency for each sensor, a 3D representation to have the force center and a color map to see which sensor is the most used.
 - **Acquisition_data_handle_video.py** : enable to turn csv data from expereinces into a 30s video where we can see the evolution of the color mapping.
-- <ins>**Ellipse**</ins> : This file contains code (**Ellipse.py**) to manipulate a UR30 simulation through direct kinematic with pyvista. The purpose is to show the manipulability ellipse of this arm. We can control it with cursors or with an input window.   
+- <ins>**Ellipse**</ins> : This file contains code (**Ellipse.py**) to manipulate a UR30 simulation through direct kinematic with pyvista. The purpose is to show the manipulability ellipse of this arm. We can control it with cursors or with an input window.
+- **3Dhandle.py** : This code shows a 3D representation of the handle with the six sensors on it. Furthermore, It shows through a colour gradient the way the sensors are used.
+- **3DHandle_video.py** : This code do the same thing that **3Dhandle.py**, but it gets data from csv files got from experiments to show teh way the sensors were used for 30 seconds.  
   
 <ins>**PPorPS**</ins> : This file is related to the neural network and the guessing on the way we are holding the knife thaanks to the 6 tactile sensors put on it : in standard mode or in reverse mode.
 The csv files are related to different experiences to train the neural network on several situations : when the robotic arm doesn't move or when there is only two classes to guess for instance. 
@@ -16,5 +18,3 @@ To create a neural network, you have to launch this code three times :
 
 **If you have any question** :  
 matteo.proverbio@sigma-clermont.fr
-
- simulation 
