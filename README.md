@@ -16,5 +16,63 @@ To create a neural network, you have to launch this code three times :
   
 <ins>**Tactile_sensor**</ins> : Arduino code for Teensy 4.1 to get the sensors' values as : value1,value2,value3,value4,value5,value6.  
 
+<ins>**scripts**</ins> : This file contain every Python code to use the robotic arms UR, with MoveIt and without it, through direct kinematic and inverse kinematic. You can also use them with gazebo simulation and manipulate it with a joystick. Don't forget to put this file in the package you are using. 
+To use them, please install this repository and to put the script file in the **ur_gazebo** package :  
+```
+git clone https://github.com/ros-industrial/universal_robot.git
+```
+
+The useful codes are :  
+- **joysticks_publisher.py** : publishes the joystick data in the good topic for direct kinematic
+- **move_arm_node.py** : to put the arm in a pose by setting the position of each joint
+- **IK_position_moveit.py** : to put the arm in a pose by setting the coordinates through inverse kinematic and MoveIt
+- **IK_joysticks_publisher.py** : to map the joystick for inverse kinematic
+- **IK_control.py** : to control the arm through inverse kinematic with the joystick
+- **gripper_joy.py** : to open/close the gripper with the joystick  
+  
+**Commands** :  
+To launch the drivers :  
+```
+roslaunch ur_robot_driver ur5e_bringup.launch robot_ip:=192.168.56.2 kinematics_config:="/home/titouan/joy_ws/src/universal_robot/ur5e_moveit_config/config/ur5e_calibration.yaml"
+```
+To find the name of the joystick :
+```
+ls -l /dev/input/
+```
+To get the joystick data :  
+``` 
+rosrun joy joy_node _dev:=/dev/input/js1 joy:=/joy1 __name:=joystick_one
+```
+To map the joystick for inverse kinematic :  
+```
+rosrun ur_gazebo IK_joysticks_publisher.py
+```
+To map the joystick for direct kinematic :
+```
+rosrun ur_gazebo joysticks_publisher.py
+```
+To open/close the gripper with the joystick :
+```
+rosrun ur_gazebo gripper_joy.py
+```
+To control the arm through inverse kinematic :
+```
+rosrun ur_gazebo IK_control.py
+```
+
+**For gazebo with MoveIt and Rviz :**  
+To launch the simulation :
+```
+roslaunch ur_gazebo ur5e_bringup.launch
+```
+To start MoveIt planification :
+```
+roslaunch ur5e_moveit_config moveit_planning_execution.launch sim:=true
+```
+To open Rviz :
+```
+roslaunch ur5e_moveit_config moveit_rviz.launch
+```
+
 **If you have any question** :  
 matteo.proverbio@sigma-clermont.fr
